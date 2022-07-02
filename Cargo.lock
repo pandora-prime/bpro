@@ -36,6 +36,7 @@ dependencies = [
  "amplify_derive",
  "amplify_num",
  "amplify_syn",
+ "rand 0.8.5",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -122,6 +123,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
+name = "base64"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
+
+[[package]]
 name = "base64-compat"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -166,9 +173,9 @@ dependencies = [
 
 [[package]]
 name = "bitcoin_hd"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31fd1653c42b55f0535c1ab1b0ccaf32ed9d1b37c29e13bc123f93da6851a6b2"
+checksum = "d8f7f5997addace47b60c5db763bead9dabe4153e43fe8803ba67a0eec035d80"
 dependencies = [
  "amplify",
  "bitcoin",
@@ -181,10 +188,23 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitcoin_onchain"
-version = "0.8.0"
+name = "bitcoin_hwi"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39bf31c5b646d17e4c1b92e962174f2eae7ea8b137aeccac04b301ceb9b2134d"
+checksum = "6686947214dfac9761bd9f17d264261af6d1df9a56349f172bce211c7ae1f596"
+dependencies = [
+ "amplify",
+ "base64",
+ "bitcoin",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "bitcoin_onchain"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "83934c2077a420678ec8aa0272c9412bb1ed9a7c592b8021a47b319a4e89faae"
 dependencies = [
  "amplify",
  "bitcoin",
@@ -193,6 +213,8 @@ dependencies = [
  "descriptors",
  "electrum-client",
  "miniscript",
+ "serde",
+ "serde_with",
  "strict_encoding",
 ]
 
@@ -287,11 +309,13 @@ dependencies = [
  "amplify",
  "bitcoin",
  "bp-core",
+ "chrono",
  "clap",
  "commit_verify",
  "descriptor-wallet",
  "electrum-client",
  "lnpbp",
+ "miniscript",
  "rgb-std",
  "serde",
  "serde_json",
@@ -470,18 +494,20 @@ dependencies = [
 
 [[package]]
 name = "descriptor-wallet"
-version = "0.8.1"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2ca925ccf1ac313aa1289d60ba54864073dc8694bee11d74bc4b7ff99580669"
+checksum = "50e1760da2b3d0962b4532f0cf0653a7d06c72b51d2408ad4e81f83d4bbc2132"
 dependencies = [
  "amplify",
  "bitcoin",
  "bitcoin_hd",
+ "bitcoin_hwi",
  "bitcoin_onchain",
  "bitcoin_scripts",
  "chrono",
  "descriptors",
  "electrum-client",
+ "miniscript",
  "psbt",
  "serde",
  "serde_with",
@@ -808,6 +834,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da39fc7a8adea97a677337b0091779dd86349226b869053af496584a9b9e5847"
 dependencies = [
  "bitcoin",
+ "serde",
 ]
 
 [[package]]

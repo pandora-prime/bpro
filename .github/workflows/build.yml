@@ -45,6 +45,7 @@ jobs:
       matrix:
         feature:
           - serde
+          - cli
     steps:
       - uses: actions/checkout@v2
       - name: Install rust stable
