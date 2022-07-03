@@ -93,15 +93,15 @@ impl Wallet {
     pub fn next_default_index(&self) -> UnhardenedIndex {
         self.last_indexes
             .get(&UnhardenedIndex::zero())
-            .and_then(|index| index.checked_inc())
-            .unwrap_or(UnhardenedIndex::zero())
+            .and_then(UnhardenedIndex::checked_inc)
+            .unwrap_or_else(UnhardenedIndex::zero)
     }
 
     pub fn next_change_index(&self) -> UnhardenedIndex {
         self.last_indexes
             .get(&UnhardenedIndex::one())
             .and_then(|index| index.checked_inc())
-            .unwrap_or(UnhardenedIndex::zero())
+            .unwrap_or_else(UnhardenedIndex::zero)
     }
 
     pub fn update_next_change_index(&mut self, new_index: UnhardenedIndex) -> bool {
@@ -116,7 +116,7 @@ impl Wallet {
             .as_settings()
             .descriptors_all()
             .expect("invalid wallet descriptor");
-        DescriptorExt::<PublicKey>::address(&descriptor, &SECP256K1, &[
+        DescriptorExt::<PublicKey>::address(&descriptor, SECP256K1, &[
             UnhardenedIndex::zero(),
             index,
         ])
@@ -131,6 +131,7 @@ impl Wallet {
         prevouts.sort_by_key(|p| p.amount);
         let mut acc = 0u64;
         let mut take_next = true;
+        #[allow(clippy::needless_collect)]
         let prevouts = prevouts
             .into_iter()
             .take_while(|p| {
@@ -325,7 +326,7 @@ impl ResolveTx for Wallet {
             .iter()
             .find(|item| item.onchain.txid == txid)
             .map(|meta| meta.tx.clone())
-            .ok_or(TxResolverError::with(txid))
+            .ok_or_else(|| TxResolverError::with(txid))
     }
 }
 
@@ -475,11 +476,7 @@ impl WalletSettings {
                     DescriptorError::InsufficientSignerCount(signer_count, condition),
                 ),
                 SigsReq::Specific(signer_fp)
-                    if self
-                        .signers
-                        .iter()
-                        .find(|s| s.fingerprint() == signer_fp)
-                        .is_none() =>
+                    if !self.signers.iter().any(|s| s.fingerprint() == signer_fp) =>
                 {
                     Err(DescriptorError::UnknownConditionSigner(
                         condition, signer_fp,
@@ -568,9 +565,9 @@ impl WalletSettings {
             let first_key = self
                 .signers
                 .first()
-                .ok_or(miniscript::Error::Unexpected(s!(
-                    "wallet core does not contain any signers"
-                )))?
+                .ok_or_else(|| {
+                    miniscript::Error::Unexpected(s!("wallet core does not contain any signers"))
+                })?
                 .to_tracking_account(self.terminal.clone());
 
             return Ok(match class {
@@ -626,18 +623,18 @@ impl WalletSettings {
                     Option<Policy<DerivationAccount>>,
                 ),
             |(acc, prev), (index, pol)| match (acc, prev) {
-                (None, None) if index % 2 == 1 => (None, Some(pol.clone())),
-                (None, None) => (Some(pol.clone()), None),
+                (None, None) if index % 2 == 1 => (None, Some(pol)),
+                (None, None) => (Some(pol), None),
                 (None, Some(prev)) => (
                     Some(Policy::Or(vec![
-                        (*index as usize, pol.clone()),
+                        (*index as usize, pol),
                         (*index as usize + 1, prev),
                     ])),
                     None,
                 ),
                 (Some(acc), None) => (
                     Some(Policy::Or(vec![
-                        (*index as usize, pol.clone()),
+                        (*index as usize, pol),
                         (*index as usize + 1, acc),
                     ])),
                     None,
@@ -645,9 +642,9 @@ impl WalletSettings {
                 _ => unreachable!(),
             },
         );
-        let policy = policy.or(remnant).ok_or(miniscript::Error::Unexpected(s!(
-            "zero signing accounts must be filtered"
-        )))?;
+        let policy = policy.or(remnant).ok_or_else(|| {
+            miniscript::Error::Unexpected(s!("zero signing accounts must be filtered"))
+        })?;
 
         let err_mapper = |err| match err {
             CompilerError::PolicyError(PolicyError::DuplicatePubKeys) => {
@@ -712,7 +709,7 @@ impl WalletSettings {
                 pat[len - 1] = index;
                 Ok((
                     index,
-                    DescriptorExt::<PublicKey>::script_pubkey(&descriptor, &SECP256K1, &pat)
+                    DescriptorExt::<PublicKey>::script_pubkey(&descriptor, SECP256K1, &pat)
                         .map_err(|_| {
                             miniscript::Error::BadDescriptor(s!("unable to derive script pubkey"))
                         })?
@@ -732,9 +729,9 @@ impl WalletSettings {
             .map(|(index, spk)| -> Result<_, _> {
                 Ok((
                     index,
-                    AddressCompat::from_script(&spk, self.network.into()).ok_or(
-                        miniscript::Error::BadDescriptor(s!("address can't be generated")),
-                    )?,
+                    AddressCompat::from_script(&spk, self.network.into()).ok_or_else(|| {
+                        miniscript::Error::BadDescriptor(s!("address can't be generated"))
+                    })?,
                 ))
             })
             .collect()

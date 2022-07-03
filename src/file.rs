@@ -23,12 +23,10 @@ use crate::{Wallet, WalletSettings};
 const WALLET_DOC_MAGIC: [u8; 4] = [0xa4, 0x54, 0x6a, 0x8e];
 
 pub struct RefWrap<'doc, T>(pub(self) &'doc T)
-where
-    T: StrictEncode;
+where T: StrictEncode;
 
 impl<'doc, T> StrictEncode for RefWrap<'doc, T>
-where
-    T: StrictEncode,
+where T: StrictEncode
 {
     fn strict_encode<E: Write>(&self, e: E) -> Result<usize, strict_encoding::Error> {
         self.0.strict_encode(e)
@@ -37,24 +35,21 @@ where
 
 #[derive(StrictDecode)]
 pub struct DocReader<T>
-where
-    T: StrictDecode,
+where T: StrictDecode
 {
     pub(self) magic: [u8; 4],
     pub(self) data: T,
 }
 
 impl<T> DocReader<T>
-where
-    T: StrictDecode,
+where T: StrictDecode
 {
     pub fn magic_u32(&self) -> u32 { u32::from_be_bytes(self.magic) }
 }
 
 #[derive(StrictEncode)]
 pub struct DocWriter<'doc, T>
-where
-    T: StrictEncode,
+where T: StrictEncode
 {
     pub(self) magic: [u8; 4],
     pub(self) data: RefWrap<'doc, T>,
@@ -87,8 +82,7 @@ pub enum Error {
 }
 
 pub trait FileDocument
-where
-    Self: From<Self::FallbackDocType>,
+where Self: From<Self::FallbackDocType>
 {
     const DOC_MAGIC: [u8; 4];
 
@@ -105,9 +99,7 @@ where
     }
 
     fn read_file(path: impl AsRef<Path>) -> Result<Self, Error>
-    where
-        Self: StrictDecode,
-    {
+    where Self: StrictDecode {
         let mut file = fs::OpenOptions::new()
             .create(false)
             .write(false)
@@ -140,9 +132,7 @@ where
     }
 
     fn write_file(&self, path: impl AsRef<Path>) -> Result<usize, Error>
-    where
-        Self: Sized + StrictEncode,
-    {
+    where Self: Sized + StrictEncode {
         let doc = DocWriter::with(Self::DOC_MAGIC, self);
         let file = fs::File::create(path)?;
         doc.strict_encode(file).map_err(Error::Encoding)

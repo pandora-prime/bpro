@@ -16,15 +16,13 @@ use miniscript::{Miniscript, MiniscriptKey, Tap};
 
 // TODO: Move to descriptor wallet library
 pub trait ToTapTree<Pk>
-where
-    Pk: MiniscriptKey,
+where Pk: MiniscriptKey
 {
     fn to_tap_tree(self) -> Result<TapTree<Pk>, miniscript::Error>;
 }
 
 impl<Pk> ToTapTree<Pk> for Vec<(u8, Miniscript<Pk, Tap>)>
-where
-    Pk: MiniscriptKey,
+where Pk: MiniscriptKey
 {
     fn to_tap_tree(self) -> Result<TapTree<Pk>, miniscript::Error> {
         let ms_err = || {
@@ -58,6 +56,6 @@ where
 
         tap_tree
             .or_else(|| remnant.map(|ms| TapTree::Leaf(Arc::new(ms))))
-            .ok_or(ms_err())
+            .ok_or_else(ms_err)
     }
 }

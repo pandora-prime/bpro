@@ -35,8 +35,7 @@ impl XprivSigner {
             let remaining_derivation = derivation
                 .into_iter()
                 .skip_while(|child| child.is_hardened());
-            let remaining_derivation = remaining_derivation.copied().collect();
-            remaining_derivation
+            remaining_derivation.copied().collect()
         } else {
             return Err(SecretProviderError::AccountUnknown(fingerprint, pubkey));
         };

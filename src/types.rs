@@ -116,7 +116,7 @@ impl HardwareList {
                         fingerprint,
                         device.device_type,
                         device.model,
-                        scheme.clone(),
+                        *scheme,
                         network,
                         err,
                     ));
@@ -152,7 +152,7 @@ impl Display for OriginFormat {
 
 impl OriginFormat {
     pub fn with_account(path: &DerivationPath, depth: u8, network: PublicNetwork) -> OriginFormat {
-        let bip43 = Bip43::deduce(&path);
+        let bip43 = Bip43::deduce(path);
         if let Some(bip43) = bip43 {
             let account = bip43
                 .extract_account_index(path)

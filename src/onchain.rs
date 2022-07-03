@@ -148,7 +148,7 @@ impl OnchainStatus {
     // TODO: Do a binary file indexed by height, representing date/time information for each height
     pub fn date_time_est(self) -> DateTime<chrono::Local> {
         match self {
-            OnchainStatus::Mempool => return chrono::Local::now(),
+            OnchainStatus::Mempool => chrono::Local::now(),
             OnchainStatus::Blockchain(height) => {
                 let reference_height = 733961;
                 let reference_time = 1651158666_i32;
