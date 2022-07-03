@@ -32,8 +32,9 @@ clap = { version = "~3.1.18", optional = true, features = ["derive"] }
 
 [features]
 default = ["serde", "cli"]
-all = ["serde", "cli"]
-cli = ["clap", "serde_yaml", "serde_json", "descriptor-wallet/electrum", "electrum-client"]
+all = ["serde", "cli", "electrum"]
+electrum = ["electrum-client"]
+cli = ["clap", "serde_yaml", "serde_json", "descriptor-wallet/electrum", "electrum"]
 serde = ["serde_crate", "serde_with", "lnpbp/serde",
     "amplify/serde", "commit_verify/serde", "strict_encoding/serde",
     "descriptor-wallet/serde", "bp-core/serde", "rgb-std/serde",

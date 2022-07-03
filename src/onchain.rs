@@ -16,6 +16,7 @@ use ::wallet::address::AddressCompat;
 use ::wallet::hd::{DerivationSubpath, SegmentIndexes, UnhardenedIndex};
 use bitcoin::{OutPoint, Transaction, Txid};
 use chrono::{DateTime, NaiveDateTime, Utc};
+#[cfg(feature = "electrum")]
 use electrum_client::{GetHistoryRes, ListUnspentRes};
 use wallet::scripts::PubkeyScript;
 
@@ -357,6 +358,7 @@ impl From<&UtxoTxid> for TxidMeta {
     }
 }
 
+#[cfg(feature = "electrum")]
 impl From<GetHistoryRes> for TxidMeta {
     fn from(res: GetHistoryRes) -> Self {
         TxidMeta {
@@ -370,6 +372,7 @@ impl From<GetHistoryRes> for TxidMeta {
     }
 }
 
+#[cfg(feature = "electrum")]
 impl From<&ListUnspentRes> for OnchainTxid {
     fn from(res: &ListUnspentRes) -> Self {
         OnchainTxid {
@@ -380,6 +383,7 @@ impl From<&ListUnspentRes> for OnchainTxid {
     }
 }
 
+#[cfg(feature = "electrum")]
 impl UtxoTxid {
     pub fn with(res: ListUnspentRes, addr_src: AddressSource) -> Self {
         UtxoTxid {

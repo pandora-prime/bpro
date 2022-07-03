@@ -19,6 +19,7 @@ use bitcoin::secp256k1::SECP256K1;
 use bitcoin::util::bip32::{ChildNumber, DerivationPath, Fingerprint};
 use bitcoin::{Address, BlockHash, Network, PublicKey, Script, Transaction, TxOut, Txid};
 use chrono::{DateTime, Utc};
+#[cfg(feature = "electrum")]
 use electrum_client::HeaderNotification;
 use miniscript::descriptor::{DescriptorType, Sh, Wsh};
 use miniscript::policy::compiler::CompilerError;
@@ -212,6 +213,7 @@ impl Wallet {
         self.settings.add_descriptor_class(descriptor_class)
     }
 
+    #[cfg(feature = "electrum")]
     pub fn update_last_block(&mut self, last_block: &HeaderNotification) {
         self.last_block = last_block.header.block_hash();
         self.height = last_block.height as u32;
