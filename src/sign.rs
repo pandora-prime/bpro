@@ -69,7 +69,7 @@ impl SecretProvider<secp256k1::All> for XprivSigner {
         pubkey: XOnlyPublicKey,
     ) -> Result<KeyPair, SecretProviderError> {
         let xpriv = self.derive_xpriv(fingerprint, derivation, pubkey.to_public_key().inner)?;
-        let sk = KeyPair::from_secret_key(SECP256K1, xpriv.private_key);
+        let sk = KeyPair::from_secret_key(SECP256K1, &xpriv.private_key);
         Ok(sk)
     }
 

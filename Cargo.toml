@@ -1,6 +1,6 @@
 [package]
 name = "bpro"
-version = "0.1.0"
+version = "0.2.0"
 license = "AGPL-3.0"
 authors = ["Dr Maxim Orlovsky <orlovsky@pandoraprime.ch>"]
 description = "Rust bitcoin wallet library for professional use"
@@ -13,29 +13,30 @@ rust-version = "1.59.0"
 exclude = [".github", "contrib"]
 
 [dependencies]
-amplify = "3.12.1"
-lnpbp = "~0.8.0"
-strict_encoding = { version = "~0.8.0", features = ["crypto", "chrono", "bitcoin"] }
-commit_verify = "~0.8.0"
-bp-core = { version = "~0.8.0-beta.2", features = ["wallet"] }
-rgb-std = "0.8.0-rc.1"
-descriptor-wallet = { version = "~0.8.2", features = ["descriptors", "miniscript", "keygen", "hwi"] }
-bitcoin = "0.28.1"
-miniscript = "7.0.0"
-electrum-client = { version = "0.10.1", optional = true }
+amplify = "3.13.0"
+lnpbp = "~0.9.0"
+strict_encoding = { version = "~0.9.0", features = ["crypto", "chrono", "bitcoin"] }
+commit_verify = "~0.9.0"
+bp-core = { version = "~0.9.0", features = ["wallet"] }
+rgb-std = "0.9.0"
+bitcoin_scripts = "0.9.0"
+descriptor-wallet = { version = "~0.9.0", features = ["descriptors", "miniscript", "keygen", "hwi", "sign"] }
+bitcoin = "0.29.2"
+miniscript = "9.0.1"
+electrum-client = { version = "0.12.1", optional = true }
 serde_crate = { package = "serde", version = "1", features = ["derive"], optional = true }
-serde_with = { version = "1.8", features = ["hex"], optional = true }
-serde_yaml = { version = "0.8", optional = true }
+serde_with = { version = "1.14", features = ["hex"], optional = true }
+serde_yaml = { version = "0.9", optional = true }
 serde_json = { version = "1", optional = true }
 chrono = "0.4.19"
-clap = { version = "~3.1.18", optional = true, features = ["derive"] }
+clap = { version = "~3.2.23", optional = true, features = ["derive"] }
 
 [features]
 default = ["serde", "cli"]
 all = ["serde", "cli", "electrum"]
 electrum = ["electrum-client"]
 cli = ["clap", "serde_yaml", "serde_json", "descriptor-wallet/electrum", "electrum"]
-serde = ["serde_crate", "serde_with", "lnpbp/serde",
+serde = ["serde_crate", "serde_with", "lnpbp/serde", "chrono/serde",
     "amplify/serde", "commit_verify/serde", "strict_encoding/serde",
     "descriptor-wallet/serde", "bp-core/serde", "rgb-std/serde",
-    "bitcoin/use-serde"]
+    "bitcoin/serde"]

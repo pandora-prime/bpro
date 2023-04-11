@@ -12,13 +12,13 @@
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
-use ::wallet::address::AddressCompat;
 use ::wallet::hd::{DerivationSubpath, SegmentIndexes, UnhardenedIndex};
 use bitcoin::{OutPoint, Transaction, Txid};
+use bitcoin_scripts::address::AddressCompat;
+use bitcoin_scripts::PubkeyScript;
 use chrono::{DateTime, NaiveDateTime, Utc};
 #[cfg(feature = "electrum")]
 use electrum_client::{GetHistoryRes, ListUnspentRes};
-use wallet::scripts::PubkeyScript;
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
 pub struct AddressSummary {
@@ -63,7 +63,7 @@ impl AddressSource {
         network: bitcoin::Network,
     ) -> AddressSource {
         AddressSource {
-            address: AddressCompat::from_script(script, network).expect("invalid script"),
+            address: AddressCompat::from_script(script, network.into()).expect("invalid script"),
             change,
             index,
         }

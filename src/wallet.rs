@@ -15,9 +15,14 @@ use std::io::{Read, Write};
 use std::ops::{Deref, RangeInclusive};
 
 use amplify::Wrapper;
+use bitcoin::hashes::Hash;
 use bitcoin::secp256k1::SECP256K1;
 use bitcoin::util::bip32::{ChildNumber, DerivationPath, Fingerprint};
-use bitcoin::{Address, BlockHash, Network, PublicKey, Script, Transaction, TxOut, Txid};
+use bitcoin::{
+    Address, BlockHash, LockTime, Network, PublicKey, Script, Sequence, Transaction, TxOut, Txid,
+};
+use bitcoin_scripts::address::AddressCompat;
+use bitcoin_scripts::PubkeyScript;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "electrum")]
 use electrum_client::HeaderNotification;
@@ -26,18 +31,16 @@ use miniscript::policy::compiler::CompilerError;
 use miniscript::policy::concrete::{Policy, PolicyError};
 use miniscript::{Descriptor, Legacy, Segwitv0, Tap};
 use strict_encoding::{StrictDecode, StrictEncode};
+use wallet::descriptors::derive::DeriveDescriptor;
 use wallet::descriptors::{DescrVariants, DescriptorClass};
 use wallet::hd::standards::DerivationBlockchain;
 use wallet::hd::{
-    Bip43, DerivationAccount, DerivationStandard, DerivationSubpath, Descriptor as DescriptorExt,
-    HardenedIndex, HardenedIndexExpected, SegmentIndexes, TerminalStep, UnhardenedIndex,
-    UnsatisfiableKey, XpubkeyCore,
+    Bip43, DerivationAccount, DerivationStandard, DerivationSubpath, HardenedIndex,
+    HardenedIndexExpected, SegmentIndexes, TerminalStep, UnhardenedIndex, UnsatisfiableKey,
+    XpubkeyCore,
 };
-use wallet::locks::{LockTime, SeqNo};
 use wallet::onchain::{PublicNetwork, ResolveTx, TxResolverError};
 use wallet::psbt::Psbt;
-use wallet::scripts::address::AddressCompat;
-use wallet::scripts::PubkeyScript;
 use wallet::slip132::KeyApplication;
 
 use crate::{
@@ -73,7 +76,7 @@ impl From<WalletSettings> for Wallet {
         Wallet {
             settings,
             last_indexes: empty!(),
-            last_block: zero!(),
+            last_block: BlockHash::all_zeros(),
             height: 0,
             state: zero!(),
             ephemerals: zero!(),
@@ -117,11 +120,13 @@ impl Wallet {
             .as_settings()
             .descriptors_all()
             .expect("invalid wallet descriptor");
-        DescriptorExt::<PublicKey>::address(&descriptor, SECP256K1, &[
+        let d = DeriveDescriptor::<PublicKey>::derive_descriptor(&descriptor, SECP256K1, &[
             UnhardenedIndex::zero(),
             index,
         ])
-        .expect("unable to derive address for the wallet descriptor")
+        .expect("unable to derive address for the wallet descriptor");
+        d.address(self.settings.network.into())
+            .expect("unable to derive address for the wallet descriptor")
     }
 
     pub fn next_address(&self) -> Address { self.indexed_address(self.next_default_index()) }
@@ -700,23 +705,16 @@ impl WalletSettings {
         range: RangeInclusive<u16>,
     ) -> Result<BTreeMap<UnhardenedIndex, PubkeyScript>, miniscript::Error> {
         let (descriptor, _) = self.descriptors_all()?;
-        let len = DescriptorExt::<PublicKey>::derive_pattern_len(&descriptor)
-            .expect("internal inconsistency in wallet descriptor");
-        debug_assert!(len >= 2);
+        let len = 2; // TODO: Replace this hardcoded value
         let mut pat = vec![UnhardenedIndex::zero(); len];
         pat[len - 2] = if change { UnhardenedIndex::one() } else { UnhardenedIndex::zero() };
+        let d = DeriveDescriptor::<PublicKey>::derive_descriptor(&descriptor, &SECP256K1, &pat)
+            .map_err(|_| miniscript::Error::BadDescriptor(s!("unable to derive script pubkey")))?;
         range
             .map(UnhardenedIndex::from)
             .map(|index| -> Result<_, _> {
                 pat[len - 1] = index;
-                Ok((
-                    index,
-                    DescriptorExt::<PublicKey>::script_pubkey(&descriptor, SECP256K1, &pat)
-                        .map_err(|_| {
-                            miniscript::Error::BadDescriptor(s!("unable to derive script pubkey"))
-                        })?
-                        .into(),
-                ))
+                Ok((index, d.script_pubkey().into()))
             })
             .collect()
     }
@@ -726,12 +724,13 @@ impl WalletSettings {
         change: bool,
         range: RangeInclusive<u16>,
     ) -> Result<BTreeMap<UnhardenedIndex, AddressCompat>, miniscript::Error> {
+        let network = bitcoin::Network::from(self.network);
         self.script_pubkeys(change, range)?
             .into_iter()
             .map(|(index, spk)| -> Result<_, _> {
                 Ok((
                     index,
-                    AddressCompat::from_script(&spk, self.network.into()).ok_or_else(|| {
+                    AddressCompat::from_script(&spk, network.into()).ok_or_else(|| {
                         miniscript::Error::BadDescriptor(s!("address can't be generated"))
                     })?,
                 ))
@@ -820,29 +819,27 @@ impl SpendingCondition {
                 timelock: TimelockReq::AfterDate(datetime),
                 ..
             }) => Some(Policy::After(
-                LockTime::from_unix_timestamp(datetime.timestamp() as u32)
+                LockTime::from_time(datetime.timestamp() as u32)
                     .unwrap()
-                    .into_consensus(),
+                    .into(),
             )),
             // TODO: Check that this is correct
             SpendingCondition::Sigs(TimelockedSigs {
                 timelock: TimelockReq::AfterHeight(block),
                 ..
-            }) => Some(Policy::After(
-                LockTime::from_height(*block).unwrap().into_consensus(),
-            )),
+            }) => Some(Policy::After(LockTime::from_height(*block).unwrap().into())),
             // TODO: Check that this is correct
             SpendingCondition::Sigs(TimelockedSigs {
                 timelock: TimelockReq::AfterPeriod(duration),
                 ..
-            }) => Some(Policy::Older(
-                SeqNo::from_intervals(duration.intervals()).into_consensus(),
-            )),
+            }) => Some(Policy::Older(Sequence::from_512_second_intervals(
+                duration.intervals(),
+            ))),
             // TODO: Check that this is correct
             SpendingCondition::Sigs(TimelockedSigs {
                 timelock: TimelockReq::AfterBlock(block),
                 ..
-            }) => Some(Policy::Older(SeqNo::from_height(*block).into_consensus())),
+            }) => Some(Policy::Older(Sequence::from_height(*block).into())),
         };
 
         timelock
