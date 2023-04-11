@@ -708,12 +708,15 @@ impl WalletSettings {
         let len = 2; // TODO: Replace this hardcoded value
         let mut pat = vec![UnhardenedIndex::zero(); len];
         pat[len - 2] = if change { UnhardenedIndex::one() } else { UnhardenedIndex::zero() };
-        let d = DeriveDescriptor::<PublicKey>::derive_descriptor(&descriptor, &SECP256K1, &pat)
-            .map_err(|_| miniscript::Error::BadDescriptor(s!("unable to derive script pubkey")))?;
         range
             .map(UnhardenedIndex::from)
             .map(|index| -> Result<_, _> {
                 pat[len - 1] = index;
+                let d =
+                    DeriveDescriptor::<PublicKey>::derive_descriptor(&descriptor, &SECP256K1, &pat)
+                        .map_err(|_| {
+                            miniscript::Error::BadDescriptor(s!("unable to derive script pubkey"))
+                        })?;
                 Ok((index, d.script_pubkey().into()))
             })
             .collect()
