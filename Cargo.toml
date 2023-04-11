@@ -41,6 +41,3 @@ serde = ["serde_crate", "serde_with", "lnpbp/serde", "chrono/serde",
     "amplify/serde", "commit_verify/serde", "strict_encoding/serde",
     "descriptor-wallet/serde", "bp-core/serde", "rgb-std/serde",
     "bitcoin/serde"]
-
-[patch.crates-io]
-descriptor-wallet = { git = "https://github.com/BP-WG/descriptor-wallet", branch = "v0.9" }
