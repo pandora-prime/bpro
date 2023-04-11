@@ -91,7 +91,7 @@ impl HardwareList {
         let mut devices = bmap![];
         let mut log = vec![];
 
-        for device in HWIClient::enumerate().map_err(Error::NoDevices)? {
+        for device in HWIClient::enumerate()? {
             let device = match device {
                 Err(err) => {
                     log.push(err.into());
