@@ -368,7 +368,7 @@ impl Signer {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display)]
 #[derive(StrictEncode, StrictDecode)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(crate = "serde_crate"))]
 pub enum SigsReq {
@@ -376,9 +376,10 @@ pub enum SigsReq {
     All,
     #[display("at least {0} signatures")]
     AtLeast(u16),
-    // TODO: Transform to vector
-    #[display("signature by {0}")]
-    Specific(Fingerprint),
+    /// A set of account xpub fingerprints
+    // TODO: Do custom Display implementation
+    #[display("set of signatures")]
+    Specific(Vec<Fingerprint>),
     #[display("any signature")]
     Any,
 }
@@ -439,7 +440,7 @@ impl Default for TimelockReq {
     fn default() -> Self { TimelockReq::Anytime }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default, Display)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default, Display)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(crate = "serde_crate"))]
 #[derive(StrictEncode, StrictDecode)]
 #[display("{sigs} {timelock}")]

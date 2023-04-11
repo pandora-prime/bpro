@@ -342,8 +342,8 @@ impl ResolveTx for Wallet {
 pub enum DescriptorError {
     /// signer with fingerprint {0} is not part of the wallet descriptor.
     UnknownSigner(Fingerprint),
-    /// spending condition {0} references unknown signer with fingerprint {1}.
-    UnknownConditionSigner(SpendingCondition, Fingerprint),
+    /// spending condition {0} references unknown signer.
+    UnknownConditionSigner(SpendingCondition),
     /// no signers present.
     NoSigners,
     /// no spending conditions present.
@@ -473,21 +473,30 @@ impl WalletSettings {
         if self.signers.is_empty() {
             return Err(DescriptorError::NoSigners);
         }
-        if self.core.spending_conditions.contains(&(depth, condition)) {
+        if self
+            .core
+            .spending_conditions
+            .contains(&(depth, condition.clone()))
+        {
             return Err(DescriptorError::DuplicateCondition(depth, condition));
         }
         let signer_count = self.signers.len();
-        match condition {
-            SpendingCondition::Sigs(ts) => match ts.sigs {
-                SigsReq::AtLeast(n) if (n as usize) > signer_count => Err(
+        match &condition {
+            SpendingCondition::Sigs(ts) => match &ts.sigs {
+                SigsReq::AtLeast(n) if (*n as usize) > signer_count => Err(
                     DescriptorError::InsufficientSignerCount(signer_count, condition),
                 ),
-                SigsReq::Specific(signer_fp)
-                    if !self.signers.iter().any(|s| s.fingerprint() == signer_fp) =>
+                SigsReq::Specific(signers)
+                    if !self
+                        .signers
+                        .iter()
+                        .map(|signer| signer.xpub.fingerprint())
+                        .collect::<BTreeSet<_>>()
+                        .intersection(&signers.iter().copied().collect::<BTreeSet<_>>())
+                        .count()
+                        == signers.len() =>
                 {
-                    Err(DescriptorError::UnknownConditionSigner(
-                        condition, signer_fp,
-                    ))
+                    Err(DescriptorError::UnknownConditionSigner(condition))
                 }
                 _ => {
                     self.core.spending_conditions.insert((depth, condition));
@@ -742,7 +751,7 @@ impl WalletSettings {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display, From)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display, From)]
 #[derive(StrictEncode, StrictDecode)]
 #[display(inner)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(crate = "serde_crate"))]
@@ -803,13 +812,20 @@ impl SpendingCondition {
                 ..
             }) => Policy::Threshold(*k as usize, key_policies),
             SpendingCondition::Sigs(TimelockedSigs {
-                sigs: SigsReq::Specific(fp),
+                sigs: SigsReq::Specific(signers),
                 ..
-            }) => Policy::Key(
-                accounts
-                    .get(fp)
-                    .expect("fingerprint is absent from the accounts")
-                    .clone(),
+            }) => Policy::And(
+                signers
+                    .iter()
+                    .map(|fp| {
+                        Policy::Key(
+                            accounts
+                                .get(fp)
+                                .expect("fingerprint is absent from the accounts")
+                                .clone(),
+                        )
+                    })
+                    .collect(),
             ),
         };
         let timelock = match self {
