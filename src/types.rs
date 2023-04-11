@@ -16,13 +16,13 @@ use std::hash::{Hash, Hasher};
 
 use bitcoin::util::bip32::{ChildNumber, DerivationPath, ExtendedPubKey, Fingerprint};
 use chrono::{DateTime, Utc};
+use hwi::types::{HWIChain, HWIDevice};
+use hwi::HWIClient;
 use wallet::hd::standards::DerivationBlockchain;
 use wallet::hd::{
     AccountStep, Bip43, DerivationAccount, DerivationStandard, DerivationSubpath, HardenedIndex,
     SegmentIndexes, TerminalStep, XpubRef, XpubkeyCore,
 };
-use wallet::hwi::error::Error as HwiError;
-use wallet::hwi::HWIDevice;
 use wallet::onchain::PublicNetwork;
 
 // TODO: Move to descriptor wallet or BPro
@@ -44,19 +44,27 @@ pub struct HardwareDevice {
     pub default_xpub: ExtendedPubKey,
 }
 
-#[derive(Debug, Display, Error)]
+#[derive(Debug, Display, Error, From)]
 #[display(doc_comments)]
 pub enum Error {
     /// No devices detected or some of devices are locked
-    NoDevices(HwiError),
+    #[from]
+    NoDevices(hwi::error::Error),
 
     /// Device {1} ({2}, master fingerprint {0}) does not support used derivation schema {3} on
     /// {4}.
-    DerivationNotSupported(Fingerprint, String, String, Bip43, PublicNetwork, HwiError),
+    DerivationNotSupported(
+        Fingerprint,
+        String,
+        String,
+        Bip43,
+        PublicNetwork,
+        hwi::error::Error,
+    ),
 }
 
 impl Error {
-    pub fn into_hwi_error(self) -> HwiError {
+    pub fn into_hwi_error(self) -> hwi::error::Error {
         match self {
             Error::NoDevices(err) => err,
             Error::DerivationNotSupported(_, _, _, _, _, err) => err,
@@ -83,16 +91,36 @@ impl HardwareList {
         let mut devices = bmap![];
         let mut log = vec![];
 
-        for device in HWIDevice::enumerate().map_err(Error::NoDevices)? {
+        for device in HWIClient::enumerate().map_err(Error::NoDevices)? {
+            let device = match device {
+                Err(err) => {
+                    log.push(err.into());
+                    continue;
+                }
+                Ok(device) => device,
+            };
+
             let fingerprint = Fingerprint::from(&device.fingerprint[..]);
 
+            let chain = match network {
+                PublicNetwork::Mainnet => HWIChain::Main,
+                PublicNetwork::Testnet => HWIChain::Test,
+                PublicNetwork::Signet => HWIChain::Signet,
+            };
+            let client = match HWIClient::get_client(&device, false, chain) {
+                Err(err) => {
+                    log.push(err.into());
+                    continue;
+                }
+                Ok(client) => client,
+            };
             let derivation = scheme.to_account_derivation(default_account.into(), network.into());
             let derivation_string = derivation.to_string();
-            match device.get_xpub(
+            match client.get_xpub(
                 &derivation_string.parse().expect(
                     "ancient bitcoin version with different derivation path implementation",
                 ),
-                network.is_testnet(),
+                false,
             ) {
                 Ok(hwikey) => {
                     let xpub = ExtendedPubKey {
@@ -104,7 +132,7 @@ impl HardwareList {
                         chain_code: hwikey.xpub.chain_code,
                     };
                     devices.insert(fingerprint, HardwareDevice {
-                        device_type: device.device_type.clone(),
+                        device_type: device.device_type.to_string(),
                         model: device.model.clone(),
                         device,
                         default_account,
@@ -114,7 +142,7 @@ impl HardwareList {
                 Err(err) => {
                     log.push(Error::DerivationNotSupported(
                         fingerprint,
-                        device.device_type,
+                        device.device_type.to_string(),
                         device.model,
                         *scheme,
                         network,
