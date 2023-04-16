@@ -270,7 +270,7 @@ impl Signer {
         Signer {
             master_fp: fingerprint,
             device: Some(device.device_type),
-            name: device.model.clone(),
+            name: format!("{fingerprint}_{}", device.default_xpub.fingerprint()),
             origin: schema.to_account_derivation(device.default_account.into(), network.into()),
             xpub: device.default_xpub,
             account: Some(device.default_account),
