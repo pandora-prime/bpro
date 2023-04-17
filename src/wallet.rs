@@ -350,6 +350,8 @@ pub enum DescriptorError {
     NoConditions,
     /// no information about scriptPubkey construction present.
     NoDescriptorClasses,
+    /// use of multiple descriptors is not allwoed for this wallet class.
+    MultipleDescriptorsNotAllowed,
     /// duplicated spending condition {1} at depth {0}.
     DuplicateCondition(u8, SpendingCondition),
     /// signer {0} key with fingerprint {1} is already present among signers.
