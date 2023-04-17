@@ -18,7 +18,7 @@ use bitcoin_scripts::address::AddressCompat;
 use bitcoin_scripts::PubkeyScript;
 use chrono::{DateTime, NaiveDateTime, Utc};
 #[cfg(feature = "electrum")]
-use electrum_client::{GetHistoryRes, ListUnspentRes};
+use electrum_rpc::{GetHistoryRes, ListUnspentRes};
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
 pub struct AddressSummary {

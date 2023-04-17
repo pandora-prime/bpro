@@ -24,7 +24,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd4cfe45ca7f2d3aab1de4a8868f80d8bddb5755f034b6af0e629b03345f86b9"
 dependencies = [
  "amplify 4.0.0",
- "baid58 0.3.1",
+ "baid58",
  "bitcoin_hashes 0.12.0",
  "blake3",
  "half",
@@ -193,17 +193,6 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
 name = "baid58"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a05192bd44b6cced6d9f89b98d82fba5d1df844332e34d4888ec6ba5b28a487"
-dependencies = [
- "base58",
- "blake3",
- "mnemonic",
-]
-
-[[package]]
-name = "baid58"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5dce38f6b284b55ab61c1efe2143ac5ca2fcc6090536884e55921f4e002894de"
@@ -261,6 +250,7 @@ dependencies = [
  "bitcoin_hashes 0.12.0",
  "hex_lit",
  "secp256k1 0.27.0",
+ "serde",
 ]
 
 [[package]]
@@ -296,6 +286,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d7066118b13d4b20b23645932dfb3a81ce7e29f95726c2036fa33cd7b092501"
 dependencies = [
  "bitcoin-private",
+ "serde",
 ]
 
 [[package]]
@@ -381,6 +372,7 @@ dependencies = [
  "bp-primitives",
  "bp-seals",
  "commit_verify",
+ "serde",
  "single_use_seals",
  "strict_encoding 2.0.1",
 ]
@@ -392,10 +384,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4416e203e2ef0853db5c4bb9d057d708866a27207eaba5cd915331ee7f85d8bb"
 dependencies = [
  "amplify 4.0.0",
- "baid58 0.3.1",
+ "baid58",
  "bp-primitives",
  "commit_verify",
  "secp256k1 0.27.0",
+ "serde",
  "strict_encoding 2.0.1",
 ]
 
@@ -408,6 +401,7 @@ dependencies = [
  "amplify 4.0.0",
  "commit_verify",
  "secp256k1 0.27.0",
+ "serde",
  "strict_encoding 2.0.1",
 ]
 
@@ -418,11 +412,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e99c62130e9b9e8422f69c84a492494b637247b0c13ba463b78fdfd34bbe887"
 dependencies = [
  "amplify 4.0.0",
- "baid58 0.3.1",
+ "baid58",
  "bp-dbc",
  "bp-primitives",
  "commit_verify",
  "rand",
+ "serde",
  "single_use_seals",
  "strict_encoding 2.0.1",
 ]
@@ -436,7 +431,7 @@ dependencies = [
  "bitcoin_scripts",
  "chrono",
  "descriptor-wallet",
- "electrum-client",
+ "electrum-client 0.14.0",
  "hwi",
  "lnpbp",
  "miniscript",
@@ -504,6 +499,7 @@ checksum = "a517ba2f2008e980c6cefe0553a7b56541b0a129e9e809d36770c9b1c6429c1b"
 dependencies = [
  "amplify 4.0.0",
  "rand",
+ "serde",
  "strict_encoding 2.0.1",
 ]
 
@@ -703,6 +699,24 @@ dependencies = [
  "block-buffer",
  "crypto-common",
  "subtle",
+]
+
+[[package]]
+name = "electrum-client"
+version = "0.13.0"
+source = "git+https://github.com/RCasatta/rust-electrum-client?branch=bitcoin_0_30#c925a9179e6497ed33e8c759bc526d5448be418d"
+dependencies = [
+ "bitcoin 0.30.0",
+ "bitcoin-private",
+ "byteorder",
+ "libc",
+ "log",
+ "rustls",
+ "serde",
+ "serde_json",
+ "webpki",
+ "webpki-roots",
+ "winapi",
 ]
 
 [[package]]
@@ -1336,18 +1350,22 @@ checksum = "f162c6dd7b008981e4d40210aca20b4bd0f9b60ca9271061b07f78537722f2e1"
 
 [[package]]
 name = "rgb-contracts"
-version = "0.10.0-beta.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d165e12d5e3b063dc7ac19e174a7ad23eacba4317b8ac763d0ad592b75d2352"
+version = "0.10.0"
+source = "git+https://github.com/RGB-WG/rgb#41676c2bb33e816030be5bf71e45624868370940"
 dependencies = [
  "amplify 4.0.0",
- "baid58 0.2.0",
+ "baid58",
  "bitcoin 0.30.0",
  "bp-core",
+ "commit_verify",
+ "electrum-client 0.13.0",
  "env_logger",
+ "log",
  "rgb-persist-fs",
  "rgb-std",
  "rgb-wallet",
+ "serde",
+ "serde_yaml",
  "strict_types",
 ]
 
@@ -1359,7 +1377,7 @@ checksum = "ae047f5ae6434761d68b488bd72c573d6c27ad1700a73f5a633f495e9c071b13"
 dependencies = [
  "aluvm",
  "amplify 4.0.0",
- "baid58 0.3.1",
+ "baid58",
  "bp-core",
  "commit_verify",
  "getrandom",
@@ -1374,8 +1392,7 @@ dependencies = [
 [[package]]
 name = "rgb-persist-fs"
 version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d56de85517eb858c8fc46075032212d964be44a6d90c86eddeea6f5cb30c64a"
+source = "git+https://github.com/RGB-WG/rgb#41676c2bb33e816030be5bf71e45624868370940"
 dependencies = [
  "amplify 4.0.0",
  "rgb-std",
@@ -1389,7 +1406,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "789fe6ac20c5ef10dbb3a016d0076168daeef4cb9a77c4ae2445c6c051564872"
 dependencies = [
  "amplify 4.0.0",
- "baid58 0.3.1",
+ "baid58",
  "base64 0.21.0",
  "bp-core",
  "commit_verify",
@@ -1408,7 +1425,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db48e353327bcfbdfaa578408da1960c6a3409628b1917679e010aba4a3637ac"
 dependencies = [
  "amplify 4.0.0",
- "baid58 0.3.1",
+ "baid58",
  "bitcoin 0.30.0",
  "bp-core",
  "commit_verify",
@@ -1511,6 +1528,7 @@ dependencies = [
  "bitcoin_hashes 0.12.0",
  "rand",
  "secp256k1-sys 0.8.1",
+ "serde",
 ]
 
 [[package]]
@@ -1767,7 +1785,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "393b6852bba3c81f9548e5bf4f562bea538a413222585d87e99dd1cdffdb12f8"
 dependencies = [
  "amplify 4.0.0",
- "baid58 0.3.1",
+ "baid58",
  "blake3",
  "half",
  "indexmap",

@@ -25,7 +25,7 @@ use bitcoin_scripts::address::AddressCompat;
 use bitcoin_scripts::PubkeyScript;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "electrum")]
-use electrum_client::HeaderNotification;
+use electrum_rpc::HeaderNotification;
 use miniscript::descriptor::{DescriptorType, Sh, Wsh};
 use miniscript::policy::compiler::CompilerError;
 use miniscript::policy::concrete::{Policy, PolicyError};

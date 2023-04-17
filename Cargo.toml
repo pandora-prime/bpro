@@ -21,8 +21,8 @@ descriptor-wallet = { version = "~0.10.0-alpha.2", git = "https://github.com/BP-
 bitcoin = "0.29.2"
 miniscript = "9.0.1"
 hwi = "0.6.0"
-rgb-contracts = "0.10.0-beta.1"
-electrum-client = { version = "0.14.0", optional = true }
+rgb-contracts = "0.10.0"
+electrum_rpc = { package = "electrum-client", version = "0.14.0", optional = true }
 serde_crate = { package = "serde", version = "1", features = ["derive"], optional = true }
 serde_with = { version = "2.3.2", features = ["hex"], optional = true }
 chrono = "0.4.19"
@@ -30,10 +30,12 @@ chrono = "0.4.19"
 [features]
 default = ["serde"]
 all = ["serde", "electrum"]
-electrum = ["electrum-client"]
+electrum = ["electrum_rpc"]
 serde = ["serde_crate", "serde_with", "lnpbp/serde", "chrono/serde",
     "amplify/serde", "descriptor-wallet/serde", "bitcoin/serde"]
 
 [patch.crates-io]
 bitcoin_scripts = { git = "https://github.com/BP-WG/bp-foundation" }
 bitcoin_blockchain = { git = "https://github.com/BP-WG/bp-foundation" }
+rgb-contracts = { git = "https://github.com/RGB-WG/rgb" }
+electrum-client = { git = "https://github.com/RCasatta/rust-electrum-client", branch = "bitcoin_0_30" }
