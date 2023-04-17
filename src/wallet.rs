@@ -420,7 +420,7 @@ impl WalletSettings {
         electrum: ElectrumServer,
     ) -> Result<WalletSettings, DescriptorError> {
         let terminal = vec![TerminalStep::range(0u8, 1u8), TerminalStep::Wildcard];
-        Self::with_inner(
+        Self::with_unchecked(
             signers,
             spending_conditions,
             [descriptor_class],
@@ -452,7 +452,7 @@ impl WalletSettings {
             ),
             TerminalStep::Wildcard,
         ];
-        Self::with_inner(
+        Self::with_unchecked(
             signers,
             spending_conditions,
             [descriptor_class],
@@ -462,7 +462,7 @@ impl WalletSettings {
         )
     }
 
-    fn with_inner(
+    pub fn with_unchecked(
         signers: impl IntoIterator<Item = Signer>,
         spending_conditions: impl IntoIterator<Item = (u8, SpendingCondition)>,
         descriptor_classes: impl IntoIterator<Item = DescriptorClass>,
