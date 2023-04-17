@@ -42,13 +42,37 @@ pub struct WalletTemplate {
     pub watch_only_req: Requirement,
     pub conditions: BTreeSet<(u8, SpendingCondition)>,
     pub network: PublicNetwork,
+    pub use_rgb: bool,
 }
 
 impl WalletTemplate {
+    pub fn taproot_singlesig_rgb(network: PublicNetwork, require_hardware: bool) -> WalletTemplate {
+        let hardware_req = match require_hardware {
+            true => Requirement::Require,
+            false => Requirement::Deny,
+        };
+        let watch_only_req = match require_hardware {
+            true => Requirement::Deny,
+            false => Requirement::Require,
+        };
+        WalletTemplate {
+            default_derivation: Bip43::singlesig_taproot().into(),
+            descriptor_class: DescriptorClass::TaprootC0,
+            min_signer_count: 1,
+            max_signer_count: Some(1),
+            hardware_req,
+            watch_only_req,
+            conditions: bset![(0, SpendingCondition::default())],
+            network,
+            use_rgb: true,
+        }
+    }
+
     pub fn singlesig(
         descriptor_class: DescriptorClass,
         network: PublicNetwork,
         require_hardware: bool,
+        use_rgb: bool,
     ) -> WalletTemplate {
         let format = descriptor_class.bip43(1);
         let hardware_req = match require_hardware {
@@ -68,6 +92,7 @@ impl WalletTemplate {
             watch_only_req,
             conditions: bset![(0, SpendingCondition::default())],
             network,
+            use_rgb,
         }
     }
 
@@ -101,6 +126,7 @@ impl WalletTemplate {
             watch_only_req,
             conditions,
             network,
+            use_rgb: false,
         }
     }
 
@@ -163,6 +189,7 @@ impl WalletTemplate {
             watch_only_req,
             conditions,
             network,
+            use_rgb: false,
         }
     }
 
