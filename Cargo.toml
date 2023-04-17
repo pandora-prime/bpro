@@ -21,6 +21,7 @@ descriptor-wallet = { version = "~0.10.0-alpha.2", git = "https://github.com/BP-
 bitcoin = "0.29.2"
 miniscript = "9.0.1"
 hwi = "0.6.0"
+rgb-contracts = "0.10.0-beta.1"
 electrum-client = { version = "0.14.0", optional = true }
 serde_crate = { package = "serde", version = "1", features = ["derive"], optional = true }
 serde_with = { version = "2.3.2", features = ["hex"], optional = true }
