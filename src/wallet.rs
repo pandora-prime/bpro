@@ -36,8 +36,8 @@ use wallet::descriptors::{DescrVariants, DescriptorClass};
 use wallet::hd::standards::DerivationBlockchain;
 use wallet::hd::{
     Bip43, DerivationAccount, DerivationStandard, DerivationSubpath, HardenedIndex,
-    HardenedIndexExpected, SegmentIndexes, TerminalStep, UnhardenedIndex, UnsatisfiableKey,
-    XpubkeyCore,
+    HardenedIndexExpected, IndexRange, IndexRangeList, SegmentIndexes, TerminalStep,
+    UnhardenedIndex, UnsatisfiableKey, XpubkeyCore,
 };
 use wallet::onchain::{PublicNetwork, ResolveTx, TxResolverError};
 use wallet::psbt::Psbt;
@@ -395,6 +395,7 @@ pub struct WalletDescriptor {
     /// spending conditions into a scriptPubkey. In case of taproot, this means that the descriptor
     /// type must also define how the key path spending condition is constructed (aggregated key or
     /// a unsatisfiable condition).
+    // TODO: Consider dropping support for multi-descriptor wallets
     pub(self) descriptor_classes: BTreeSet<DescriptorClass>,
     /// Terminal defines a way how a public keys are derived from signing extended keys. Terminals
     /// always consists of unhardened indexes or unhardened index wildcards - and always contain
@@ -411,7 +412,57 @@ pub struct WalletDescriptor {
 }
 
 impl WalletSettings {
-    pub fn with(
+    pub fn new_btc(
+        signers: impl IntoIterator<Item = Signer>,
+        spending_conditions: impl IntoIterator<Item = (u8, SpendingCondition)>,
+        descriptor_class: DescriptorClass,
+        network: PublicNetwork,
+        electrum: ElectrumServer,
+    ) -> Result<WalletSettings, DescriptorError> {
+        let terminal = vec![TerminalStep::range(0u8, 1u8), TerminalStep::Wildcard];
+        Self::with_inner(
+            signers,
+            spending_conditions,
+            [descriptor_class],
+            terminal.into(),
+            network,
+            electrum,
+        )
+    }
+
+    pub fn new_rgb(
+        signers: impl IntoIterator<Item = Signer>,
+        spending_conditions: impl IntoIterator<Item = (u8, SpendingCondition)>,
+        descriptor_class: DescriptorClass,
+        network: PublicNetwork,
+        electrum: ElectrumServer,
+    ) -> Result<WalletSettings, DescriptorError> {
+        let terminal = vec![
+            TerminalStep::Range(
+                IndexRangeList::with([
+                    IndexRange::with(0u8, 1u8),
+                    IndexRange::new(9u8),
+                    IndexRange::new(10u8),
+                    IndexRange::new(20u8),
+                    IndexRange::new(30u8),
+                    IndexRange::new(40u8),
+                    IndexRange::new(50u8),
+                ])
+                .expect("hardcoded range"),
+            ),
+            TerminalStep::Wildcard,
+        ];
+        Self::with_inner(
+            signers,
+            spending_conditions,
+            [descriptor_class],
+            terminal.into(),
+            network,
+            electrum,
+        )
+    }
+
+    fn with_inner(
         signers: impl IntoIterator<Item = Signer>,
         spending_conditions: impl IntoIterator<Item = (u8, SpendingCondition)>,
         descriptor_classes: impl IntoIterator<Item = DescriptorClass>,
@@ -431,6 +482,8 @@ impl WalletSettings {
                 spending_conditions: empty!(),
             },
         };
+
+        // TODO: Check that descriptor matches network
 
         for signer in signers {
             descriptor.add_signer(signer)?;
@@ -748,6 +801,13 @@ impl WalletSettings {
                 ))
             })
             .collect()
+    }
+
+    pub fn is_rgb(&self) -> bool {
+        self.terminal
+            .first()
+            .map(|step| step.contains(9))
+            .unwrap_or_default()
     }
 }
 
