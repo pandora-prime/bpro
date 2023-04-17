@@ -23,17 +23,13 @@ miniscript = "9.0.1"
 hwi = "0.6.0"
 electrum-client = { version = "0.14.0", optional = true }
 serde_crate = { package = "serde", version = "1", features = ["derive"], optional = true }
-serde_with = { version = "1.14", features = ["hex"], optional = true }
-serde_yaml = { version = "0.9", optional = true }
-serde_json = { version = "1", optional = true }
+serde_with = { version = "2.3.2", features = ["hex"], optional = true }
 chrono = "0.4.19"
-clap = { version = "~3.2.23", optional = true, features = ["derive"] }
 
 [features]
-default = ["serde", "cli"]
-all = ["serde", "cli", "electrum"]
+default = ["serde"]
+all = ["serde", "electrum"]
 electrum = ["electrum-client"]
-cli = ["clap", "serde_yaml", "serde_json", "descriptor-wallet/electrum", "electrum"]
 serde = ["serde_crate", "serde_with", "lnpbp/serde", "chrono/serde",
     "amplify/serde", "descriptor-wallet/serde", "bitcoin/serde"]
 

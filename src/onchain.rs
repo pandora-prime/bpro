@@ -46,7 +46,7 @@ impl AddressSummary {
 #[derive(StrictEncode, StrictDecode)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(crate = "serde_crate"))]
 pub struct AddressSource {
-    #[cfg_attr(feature = "serde", serde(with = "serde_with::rust::display_fromstr"))]
+    #[cfg_attr(feature = "serde", serde(with = "::serde_with::As::<::serde_with::DisplayFromStr>"))]
     pub address: AddressCompat,
     pub change: bool,
     pub index: UnhardenedIndex,
