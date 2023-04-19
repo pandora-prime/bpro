@@ -11,6 +11,7 @@
 
 use std::collections::btree_map::Entry;
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::{self, Display, Formatter};
 use std::io::{Read, Write};
 use std::ops::{Deref, RangeInclusive};
 
@@ -413,6 +414,61 @@ pub struct WalletDescriptor {
     pub(self) spending_conditions: BTreeSet<(u8, SpendingCondition)>,
 }
 
+impl WalletDescriptor {
+    pub fn is_rgb(&self) -> bool {
+        self.terminal
+            .first()
+            .map(|step| step.contains(9))
+            .unwrap_or_default()
+    }
+}
+
+impl Display for WalletDescriptor {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if self.descriptor_classes.len() == 1 {
+            let s = match self
+                .descriptor_classes
+                .first()
+                .expect("length checked above")
+            {
+                DescriptorClass::PreSegwit => "Legacy ",
+                DescriptorClass::SegwitV0 => "SegWit ",
+                DescriptorClass::NestedV0 => "SegWit-compatible ",
+                DescriptorClass::TaprootC0 => "Taproot ",
+            };
+            f.write_str(s)?;
+            if self.signing_keys.len() == 1 {
+                f.write_str("single-sig")?;
+            } else if let Some((_, SpendingCondition::Sigs(TimelockedSigs { sigs, timelock }))) =
+                self.spending_conditions.first()
+            {
+                if timelock != &TimelockReq::Anytime || self.spending_conditions.len() > 1 {
+                    f.write_str("time-locked multi-sig")?;
+                } else {
+                    let n = self.signing_keys.len() as u16;
+                    write!(
+                        f,
+                        "{}-of-{} multi-sig",
+                        sigs.required_sigs_count().unwrap_or(n),
+                        n
+                    )?;
+                }
+            } else {
+                unreachable!("empty spending conditions");
+            }
+        } else {
+            f.write_str("Multi-descriptor")?;
+        }
+        if self.is_rgb() {
+            f.write_str(" with RGB")?;
+        }
+        if self.testnet {
+            f.write_str(" (testnet)")?;
+        }
+        Ok(())
+    }
+}
+
 impl WalletSettings {
     pub fn new_btc(
         signers: impl IntoIterator<Item = Signer>,
@@ -803,13 +859,6 @@ impl WalletSettings {
                 ))
             })
             .collect()
-    }
-
-    pub fn is_rgb(&self) -> bool {
-        self.terminal
-            .first()
-            .map(|step| step.contains(9))
-            .unwrap_or_default()
     }
 }
 

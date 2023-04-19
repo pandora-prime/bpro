@@ -388,6 +388,17 @@ impl Default for SigsReq {
     fn default() -> Self { SigsReq::All }
 }
 
+impl SigsReq {
+    pub fn required_sigs_count(&self) -> Option<u16> {
+        match self {
+            SigsReq::All => None,
+            SigsReq::AtLeast(at_least) => Some(*at_least),
+            SigsReq::Specific(list) => Some(list.len() as u16),
+            SigsReq::Any => Some(1),
+        }
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display)]
 #[derive(StrictEncode, StrictDecode)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(crate = "serde_crate"))]
