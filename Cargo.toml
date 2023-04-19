@@ -40,3 +40,4 @@ serde = ["serde_crate", "serde_with", "lnpbp/serde", "chrono/serde",
 [patch.crates-io]
 bitcoin_scripts = { git = "https://github.com/BP-WG/bp-foundation" }
 bitcoin_blockchain = { git = "https://github.com/BP-WG/bp-foundation" }
+descriptor-wallet = { git = "https://github.com/BP-WG/descriptor-wallet" }

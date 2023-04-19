@@ -379,9 +379,11 @@ pub enum SigsReq {
     /// A set of account xpub fingerprints
     // TODO: Do custom Display implementation
     #[display("set of signatures")]
-    Specific(Vec<Fingerprint>),
+    Specific(u16, Vec<Fingerprint>),
     #[display("any signature")]
     Any,
+    #[display("at least {0} signatures from account {1}")]
+    AccountBased(u16, HardenedIndex),
 }
 
 impl Default for SigsReq {

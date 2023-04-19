@@ -486,7 +486,7 @@ impl WalletSettings {
                 SigsReq::AtLeast(n) if (*n as usize) > signer_count => Err(
                     DescriptorError::InsufficientSignerCount(signer_count, condition),
                 ),
-                SigsReq::Specific(signers)
+                SigsReq::Specific(_, signers)
                     if !self
                         .signers
                         .iter()
@@ -497,6 +497,23 @@ impl WalletSettings {
                         == signers.len() =>
                 {
                     Err(DescriptorError::UnknownConditionSigner(condition))
+                }
+                SigsReq::Specific(count, signers) if signers.len() < *count as usize => Err(
+                    DescriptorError::InsufficientSignerCount(signers.len(), condition),
+                ),
+                SigsReq::AccountBased(at_least, account_no) => {
+                    let count = self
+                        .signers
+                        .iter()
+                        .filter_map(|signer| signer.account)
+                        .filter(|acc_no| acc_no == account_no)
+                        .count();
+                    if count < *at_least as usize {
+                        Err(DescriptorError::InsufficientSignerCount(count, condition))
+                    } else {
+                        self.core.spending_conditions.insert((depth, condition));
+                        Ok(())
+                    }
                 }
                 _ => {
                     self.core.spending_conditions.insert((depth, condition));
@@ -812,9 +829,10 @@ impl SpendingCondition {
                 ..
             }) => Policy::Threshold(*k as usize, key_policies),
             SpendingCondition::Sigs(TimelockedSigs {
-                sigs: SigsReq::Specific(signers),
+                sigs: SigsReq::Specific(at_least, signers),
                 ..
-            }) => Policy::And(
+            }) => Policy::Threshold(
+                *at_least as usize,
                 signers
                     .iter()
                     .map(|fp| {
@@ -825,6 +843,21 @@ impl SpendingCondition {
                                 .clone(),
                         )
                     })
+                    .collect(),
+            ),
+            SpendingCondition::Sigs(TimelockedSigs {
+                sigs: SigsReq::AccountBased(at_least, account_no),
+                ..
+            }) => Policy::Threshold(
+                *at_least as usize,
+                accounts
+                    .values()
+                    .filter(|acc| {
+                        acc.account_no()
+                            .map(|acc_no| acc_no == *account_no)
+                            .unwrap_or_default()
+                    })
+                    .map(|acc| Policy::Key(acc.clone()))
                     .collect(),
             ),
         };
