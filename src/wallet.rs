@@ -340,21 +340,21 @@ impl ResolveTx for Wallet {
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display, Error)]
 #[display(doc_comments)]
 pub enum DescriptorError {
-    /// signer with fingerprint {0} is not part of the wallet descriptor.
+    /// Signer with fingerprint {0} is not part of the wallet descriptor.
     UnknownSigner(Fingerprint),
-    /// spending condition {0} references unknown signer.
+    /// Spending condition {0} references unknown signer.
     UnknownConditionSigner(SpendingCondition),
-    /// no signers present.
+    /// No signers present.
     NoSigners,
-    /// no spending conditions present.
+    /// No spending conditions present.
     NoConditions,
-    /// no information about scriptPubkey construction present.
+    /// No information about scriptPubkey construction present.
     NoDescriptorClasses,
-    /// duplicated spending condition {1} at depth {0}.
+    /// Duplicated spending condition {1} at depth {0}.
     DuplicateCondition(u8, SpendingCondition),
-    /// signer {0} key with fingerprint {1} is already present among signers.
+    /// Signer {0} key with fingerprint {1} is already present among signers.
     DuplicateSigner(String, Fingerprint),
-    /// insufficient number of signers ({0}) to support spending condition "{1}" requirement.
+    /// Insufficient number of signers ({0}) to support spending condition "{1}" requirement.
     InsufficientSignerCount(usize, SpendingCondition),
 }
 
