@@ -611,25 +611,13 @@ impl WalletSettings {
             });
         }
 
-        // 1. Construct accounts
-        let accounts: BTreeMap<Fingerprint, DerivationAccount> = self
-            .signers
-            .iter()
-            .map(|signer| {
-                (
-                    signer.fingerprint(),
-                    signer.to_tracking_account(self.terminal.clone()),
-                )
-            })
-            .collect();
-
-        // 2. Construct policy fragments
+        // Construct policy fragments
         let mut dfs_tree = self
             .spending_conditions
             .iter()
-            .map(|(depth, cond)| (depth, cond.policy(&accounts)));
+            .map(|(depth, cond)| (depth, cond.policy(&self.signers, &self.terminal)));
 
-        // 3. Pack miniscript fragments according to the descriptor class
+        // Pack miniscript fragments according to the descriptor class
         if class == DescriptorClass::TaprootC0 {
             let tree = dfs_tree.try_fold::<_, _, Result<_, miniscript::Error>>(
                 Vec::new(),
@@ -813,8 +801,19 @@ impl SpendingCondition {
 
     pub fn policy(
         &self,
-        accounts: &BTreeMap<Fingerprint, DerivationAccount>,
+        signers: &[Signer],
+        terminal: &DerivationSubpath<TerminalStep>,
     ) -> Policy<DerivationAccount> {
+        let accounts: BTreeMap<Fingerprint, DerivationAccount> = signers
+            .iter()
+            .map(|signer| {
+                (
+                    signer.fingerprint(),
+                    signer.to_tracking_account(terminal.clone()),
+                )
+            })
+            .collect::<BTreeMap<Fingerprint, DerivationAccount>>();
+
         let count = accounts.len();
         let key_policies = accounts.values().cloned().map(Policy::Key).collect();
         let sigs = match self {
@@ -848,18 +847,30 @@ impl SpendingCondition {
             SpendingCondition::Sigs(TimelockedSigs {
                 sigs: SigsReq::AccountBased(at_least, account_no),
                 ..
-            }) => Policy::Threshold(
-                *at_least as usize,
-                accounts
-                    .values()
-                    .filter(|acc| {
-                        acc.account_no()
-                            .map(|acc_no| acc_no == *account_no)
-                            .unwrap_or_default()
-                    })
-                    .map(|acc| Policy::Key(acc.clone()))
-                    .collect(),
-            ),
+            }) => {
+                let p = Policy::Threshold(
+                    *at_least as usize,
+                    signers
+                        .iter()
+                        .filter(|signer| {
+                            signer
+                                .account
+                                .map(|acc_no| acc_no == *account_no)
+                                .unwrap_or_default()
+                        })
+                        .map(|signer| {
+                            Policy::Key(
+                                accounts
+                                    .get(&signer.fingerprint())
+                                    .expect("fingerprint is absent from the accounts")
+                                    .clone(),
+                            )
+                        })
+                        .collect(),
+                );
+                eprintln!("{p}");
+                p
+            }
         };
         let timelock = match self {
             SpendingCondition::Sigs(TimelockedSigs {
