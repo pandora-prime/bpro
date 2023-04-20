@@ -847,30 +847,26 @@ impl SpendingCondition {
             SpendingCondition::Sigs(TimelockedSigs {
                 sigs: SigsReq::AccountBased(at_least, account_no),
                 ..
-            }) => {
-                let p = Policy::Threshold(
-                    *at_least as usize,
-                    signers
-                        .iter()
-                        .filter(|signer| {
-                            signer
-                                .account
-                                .map(|acc_no| acc_no == *account_no)
-                                .unwrap_or_default()
-                        })
-                        .map(|signer| {
-                            Policy::Key(
-                                accounts
-                                    .get(&signer.fingerprint())
-                                    .expect("fingerprint is absent from the accounts")
-                                    .clone(),
-                            )
-                        })
-                        .collect(),
-                );
-                eprintln!("{p}");
-                p
-            }
+            }) => Policy::Threshold(
+                *at_least as usize,
+                signers
+                    .iter()
+                    .filter(|signer| {
+                        signer
+                            .account
+                            .map(|acc_no| acc_no == *account_no)
+                            .unwrap_or_default()
+                    })
+                    .map(|signer| {
+                        Policy::Key(
+                            accounts
+                                .get(&signer.fingerprint())
+                                .expect("fingerprint is absent from the accounts")
+                                .clone(),
+                        )
+                    })
+                    .collect(),
+            ),
         };
         let timelock = match self {
             SpendingCondition::Sigs(TimelockedSigs {
