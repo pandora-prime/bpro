@@ -168,7 +168,7 @@ impl Wallet {
         }
     }
 
-    pub fn address_info(&self) -> Vec<AddressSummary> {
+    pub fn address_info(&self, include_empty: bool) -> Vec<AddressSummary> {
         let mut addresses = self
             .history
             .iter()
@@ -202,6 +202,33 @@ impl Wallet {
                     let item = entry.get_mut();
                     item.balance = utxo.value;
                 }
+            }
+        }
+
+        let max_index = addresses
+            .values()
+            .filter(|info| !info.addr_src.change)
+            .map(|info| info.addr_src.index.first_index() as u16)
+            .max()
+            .unwrap_or_default()
+            + 20;
+
+        if include_empty {
+            for (index, address) in self
+                .settings
+                .addresses(false, 0..=max_index)
+                .expect("bad descriptor")
+            {
+                addresses.entry(address).or_insert(AddressSummary {
+                    addr_src: AddressSource {
+                        address,
+                        change: false,
+                        index,
+                    },
+                    balance: 0,
+                    volume: 0,
+                    tx_count: 0,
+                });
             }
         }
 
@@ -341,23 +368,23 @@ impl ResolveTx for Wallet {
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display, Error)]
 #[display(doc_comments)]
 pub enum DescriptorError {
-    /// signer with fingerprint {0} is not part of the wallet descriptor.
+    /// Signer with fingerprint {0} is not part of the wallet descriptor.
     UnknownSigner(Fingerprint),
-    /// spending condition {0} references unknown signer.
+    /// Spending condition {0} references unknown signer.
     UnknownConditionSigner(SpendingCondition),
-    /// no signers present.
+    /// No signers present.
     NoSigners,
-    /// no spending conditions present.
+    /// No spending conditions present.
     NoConditions,
-    /// no information about scriptPubkey construction present.
+    /// No information about scriptPubkey construction present.
     NoDescriptorClasses,
-    /// use of multiple descriptors is not allwoed for this wallet class.
+    /// Use of multiple descriptors is not allwoed for this wallet class.
     MultipleDescriptorsNotAllowed,
-    /// duplicated spending condition {1} at depth {0}.
+    /// Duplicated spending condition {1} at depth {0}.
     DuplicateCondition(u8, SpendingCondition),
-    /// signer {0} key with fingerprint {1} is already present among signers.
+    /// Signer {0} key with fingerprint {1} is already present among signers.
     DuplicateSigner(String, Fingerprint),
-    /// insufficient number of signers ({0}) to support spending condition "{1}" requirement.
+    /// Insufficient number of signers ({0}) to support spending condition "{1}" requirement.
     InsufficientSignerCount(usize, SpendingCondition),
 }
 
@@ -597,7 +624,7 @@ impl WalletSettings {
                 SigsReq::AtLeast(n) if (*n as usize) > signer_count => Err(
                     DescriptorError::InsufficientSignerCount(signer_count, condition),
                 ),
-                SigsReq::Specific(signers)
+                SigsReq::Specific(_, signers)
                     if !self
                         .signers
                         .iter()
@@ -608,6 +635,23 @@ impl WalletSettings {
                         == signers.len() =>
                 {
                     Err(DescriptorError::UnknownConditionSigner(condition))
+                }
+                SigsReq::Specific(count, signers) if signers.len() < *count as usize => Err(
+                    DescriptorError::InsufficientSignerCount(signers.len(), condition),
+                ),
+                SigsReq::AccountBased(at_least, account_no) => {
+                    let count = self
+                        .signers
+                        .iter()
+                        .filter_map(|signer| signer.account)
+                        .filter(|acc_no| acc_no == account_no)
+                        .count();
+                    if count < *at_least as usize {
+                        Err(DescriptorError::InsufficientSignerCount(count, condition))
+                    } else {
+                        self.core.spending_conditions.insert((depth, condition));
+                        Ok(())
+                    }
                 }
                 _ => {
                     self.core.spending_conditions.insert((depth, condition));
@@ -705,25 +749,13 @@ impl WalletSettings {
             });
         }
 
-        // 1. Construct accounts
-        let accounts: BTreeMap<Fingerprint, DerivationAccount> = self
-            .signers
-            .iter()
-            .map(|signer| {
-                (
-                    signer.fingerprint(),
-                    signer.to_tracking_account(self.terminal.clone()),
-                )
-            })
-            .collect();
-
-        // 2. Construct policy fragments
+        // Construct policy fragments
         let mut dfs_tree = self
             .spending_conditions
             .iter()
-            .map(|(depth, cond)| (depth, cond.policy(&accounts)));
+            .map(|(depth, cond)| (depth, cond.policy(&self.signers, &self.terminal)));
 
-        // 3. Pack miniscript fragments according to the descriptor class
+        // Pack miniscript fragments according to the descriptor class
         if class == DescriptorClass::TaprootC0 {
             let tree = dfs_tree.try_fold::<_, _, Result<_, miniscript::Error>>(
                 Vec::new(),
@@ -907,8 +939,19 @@ impl SpendingCondition {
 
     pub fn policy(
         &self,
-        accounts: &BTreeMap<Fingerprint, DerivationAccount>,
+        signers: &[Signer],
+        terminal: &DerivationSubpath<TerminalStep>,
     ) -> Policy<DerivationAccount> {
+        let accounts: BTreeMap<Fingerprint, DerivationAccount> = signers
+            .iter()
+            .map(|signer| {
+                (
+                    signer.fingerprint(),
+                    signer.to_tracking_account(terminal.clone()),
+                )
+            })
+            .collect::<BTreeMap<Fingerprint, DerivationAccount>>();
+
         let count = accounts.len();
         let key_policies = accounts.values().cloned().map(Policy::Key).collect();
         let sigs = match self {
@@ -923,15 +966,39 @@ impl SpendingCondition {
                 ..
             }) => Policy::Threshold(*k as usize, key_policies),
             SpendingCondition::Sigs(TimelockedSigs {
-                sigs: SigsReq::Specific(signers),
+                sigs: SigsReq::Specific(at_least, signers),
                 ..
-            }) => Policy::And(
+            }) => Policy::Threshold(
+                *at_least as usize,
                 signers
                     .iter()
                     .map(|fp| {
                         Policy::Key(
                             accounts
                                 .get(fp)
+                                .expect("fingerprint is absent from the accounts")
+                                .clone(),
+                        )
+                    })
+                    .collect(),
+            ),
+            SpendingCondition::Sigs(TimelockedSigs {
+                sigs: SigsReq::AccountBased(at_least, account_no),
+                ..
+            }) => Policy::Threshold(
+                *at_least as usize,
+                signers
+                    .iter()
+                    .filter(|signer| {
+                        signer
+                            .account
+                            .map(|acc_no| acc_no == *account_no)
+                            .unwrap_or_default()
+                    })
+                    .map(|signer| {
+                        Policy::Key(
+                            accounts
+                                .get(&signer.fingerprint())
                                 .expect("fingerprint is absent from the accounts")
                                 .clone(),
                         )

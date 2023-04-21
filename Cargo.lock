@@ -121,7 +121,7 @@ dependencies = [
 [[package]]
 name = "bitcoin_hd"
 version = "0.10.0-alpha.2"
-source = "git+https://github.com/BP-WG/descriptor-wallet#40649972e596ba7649064e32638e471435c250c0"
+source = "git+https://github.com/BP-WG/descriptor-wallet#c6336c79b0003c547b35500b17912b4751a30631"
 dependencies = [
  "amplify",
  "bitcoin",
@@ -135,7 +135,7 @@ dependencies = [
 [[package]]
 name = "bitcoin_onchain"
 version = "0.10.0-alpha.2"
-source = "git+https://github.com/BP-WG/descriptor-wallet#40649972e596ba7649064e32638e471435c250c0"
+source = "git+https://github.com/BP-WG/descriptor-wallet#c6336c79b0003c547b35500b17912b4751a30631"
 dependencies = [
  "amplify",
  "bitcoin",
@@ -367,7 +367,7 @@ dependencies = [
 [[package]]
 name = "descriptor-wallet"
 version = "0.10.0-alpha.2"
-source = "git+https://github.com/BP-WG/descriptor-wallet#40649972e596ba7649064e32638e471435c250c0"
+source = "git+https://github.com/BP-WG/descriptor-wallet#c6336c79b0003c547b35500b17912b4751a30631"
 dependencies = [
  "amplify",
  "bitcoin",
@@ -386,7 +386,7 @@ dependencies = [
 [[package]]
 name = "descriptors"
 version = "0.10.0-alpha.2"
-source = "git+https://github.com/BP-WG/descriptor-wallet#40649972e596ba7649064e32638e471435c250c0"
+source = "git+https://github.com/BP-WG/descriptor-wallet#c6336c79b0003c547b35500b17912b4751a30631"
 dependencies = [
  "amplify",
  "bitcoin",
@@ -571,9 +571,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.141"
+version = "0.2.142"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3304a64d199bb964be99741b7a14d26972741915b3649639149b2479bb46f4b5"
+checksum = "6a987beff54b60ffa6d51982e1aa1146bc42f19bd26be28b0586f252fccf5317"
 
 [[package]]
 name = "link-cplusplus"
@@ -756,7 +756,7 @@ dependencies = [
 [[package]]
 name = "psbt"
 version = "0.10.0-alpha.2"
-source = "git+https://github.com/BP-WG/descriptor-wallet#40649972e596ba7649064e32638e471435c250c0"
+source = "git+https://github.com/BP-WG/descriptor-wallet#c6336c79b0003c547b35500b17912b4751a30631"
 dependencies = [
  "amplify",
  "bitcoin",
@@ -1051,7 +1051,7 @@ dependencies = [
 [[package]]
 name = "slip132"
 version = "0.10.0-alpha.2"
-source = "git+https://github.com/BP-WG/descriptor-wallet#40649972e596ba7649064e32638e471435c250c0"
+source = "git+https://github.com/BP-WG/descriptor-wallet#c6336c79b0003c547b35500b17912b4751a30631"
 dependencies = [
  "amplify",
  "bitcoin",
