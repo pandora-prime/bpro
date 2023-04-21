@@ -167,7 +167,7 @@ impl Wallet {
         }
     }
 
-    pub fn address_info(&self) -> Vec<AddressSummary> {
+    pub fn address_info(&self, include_empty: bool) -> Vec<AddressSummary> {
         let mut addresses = self
             .history
             .iter()
@@ -201,6 +201,33 @@ impl Wallet {
                     let item = entry.get_mut();
                     item.balance = utxo.value;
                 }
+            }
+        }
+
+        let max_index = addresses
+            .values()
+            .filter(|info| !info.addr_src.change)
+            .map(|info| info.addr_src.index.first_index() as u16)
+            .max()
+            .unwrap_or_default()
+            + 20;
+
+        if include_empty {
+            for (index, address) in self
+                .settings
+                .addresses(false, 0..=max_index)
+                .expect("bad descriptor")
+            {
+                addresses.entry(address).or_insert(AddressSummary {
+                    addr_src: AddressSource {
+                        address,
+                        change: false,
+                        index,
+                    },
+                    balance: 0,
+                    volume: 0,
+                    tx_count: 0,
+                });
             }
         }
 
