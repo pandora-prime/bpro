@@ -10,6 +10,7 @@
 // <https://www.gnu.org/licenses/agpl-3.0-standalone.html>.
 
 use std::io::{Read, Write};
+use std::ops::{Deref, DerefMut};
 
 use rgbstd::persistence::Stock;
 use strict_encoding::{self, StrictDecode, StrictEncode};
@@ -17,15 +18,38 @@ use strict_encoding2::{
     DecodeError, StrictDecode as _, StrictEncode as _, StrictReader, StrictWriter,
 };
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub enum RgbProxy {
-    #[default]
-    None,
+    None(Stock),
     RgbV0_10(Stock),
 }
 
+impl Deref for RgbProxy {
+    type Target = Stock;
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            RgbProxy::None(stock) => stock,
+            RgbProxy::RgbV0_10(stock) => stock,
+        }
+    }
+}
+
+impl DerefMut for RgbProxy {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        match self {
+            RgbProxy::None(_) => panic!("writing RGB stock in non-RGB wallet"),
+            RgbProxy::RgbV0_10(stock) => stock,
+        }
+    }
+}
+
+impl Default for RgbProxy {
+    fn default() -> Self { RgbProxy::none() }
+}
+
 impl RgbProxy {
-    pub fn none() -> RgbProxy { RgbProxy::None }
+    pub fn none() -> RgbProxy { RgbProxy::None(Stock::default()) }
     pub fn new() -> RgbProxy { RgbProxy::RgbV0_10(Stock::default()) }
     pub fn with(support_rgb: bool) -> RgbProxy {
         match support_rgb {
@@ -38,7 +62,7 @@ impl RgbProxy {
 impl StrictEncode for RgbProxy {
     fn strict_encode<E: Write>(&self, mut e: E) -> Result<usize, strict_encoding::Error> {
         match self {
-            RgbProxy::None => {
+            RgbProxy::None(_) => {
                 e.write_all(&[0, 0])?;
                 Ok(2)
             }
@@ -55,7 +79,7 @@ impl StrictEncode for RgbProxy {
 impl StrictDecode for RgbProxy {
     fn strict_decode<D: Read>(mut d: D) -> Result<Self, strict_encoding::Error> {
         match <u16 as StrictDecode>::strict_decode(&mut d)? {
-            0x0000 => Ok(RgbProxy::None),
+            0x0000 => Ok(RgbProxy::none()),
             0x0001 => {
                 let mut counter = StrictReader::with(u32::MAX as usize, d);
                 let stock = Stock::strict_decode(&mut counter).map_err(|err| match err {
