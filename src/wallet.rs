@@ -41,15 +41,13 @@ use wallet::hd::{
     UnhardenedIndex, UnsatisfiableKey, XpubkeyCore,
 };
 use wallet::onchain::{PublicNetwork, ResolveTx, TxResolverError};
-use wallet::psbt::Psbt;
 use wallet::slip132::KeyApplication;
 
 use crate::{
-    AddressSource, AddressSummary, AddressValue, ElectrumServer, HistoryEntry, Prevout, Signer,
-    SigsReq, TimelockReq, TimelockedSigs, ToTapTree, TxidMeta, UtxoTxid,
+    AddressSource, AddressSummary, AddressValue, ElectrumServer, HistoryEntry, Prevout, RgbProxy,
+    Signer, SigsReq, TimelockReq, TimelockedSigs, ToTapTree, TxidMeta, UtxoTxid,
 };
 
-// TODO: Move to bpro library
 #[derive(Getters, Clone, Debug)]
 #[derive(StrictEncode, StrictDecode)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(crate = "serde_crate"))]
@@ -69,11 +67,14 @@ pub struct Wallet {
 
     utxos: BTreeSet<UtxoTxid>,
     history: BTreeSet<HistoryEntry>,
-    wip: Vec<Psbt>,
+
+    #[cfg_attr(feature = "serde", serde(skip))]
+    rgb: RgbProxy,
 }
 
 impl From<WalletSettings> for Wallet {
     fn from(settings: WalletSettings) -> Self {
+        let is_rgb = settings.is_rgb();
         Wallet {
             settings,
             last_indexes: empty!(),
@@ -83,7 +84,7 @@ impl From<WalletSettings> for Wallet {
             ephemerals: zero!(),
             utxos: bset![],
             history: bset![],
-            wip: vec![],
+            rgb: RgbProxy::with(is_rgb),
         }
     }
 }
@@ -524,16 +525,8 @@ impl WalletSettings {
     ) -> Result<WalletSettings, DescriptorError> {
         let terminal = vec![
             TerminalStep::Range(
-                IndexRangeList::with([
-                    IndexRange::with(0u8, 1u8),
-                    IndexRange::new(9u8),
-                    IndexRange::new(10u8),
-                    IndexRange::new(20u8),
-                    IndexRange::new(30u8),
-                    IndexRange::new(40u8),
-                    IndexRange::new(50u8),
-                ])
-                .expect("hardcoded range"),
+                IndexRangeList::with([IndexRange::with(0u8, 1u8), IndexRange::new(9u8)])
+                    .expect("hardcoded range"),
             ),
             TerminalStep::Wildcard,
         ];

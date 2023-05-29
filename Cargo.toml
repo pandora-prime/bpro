@@ -16,8 +16,11 @@ exclude = [".github", "contrib"]
 amplify = "3.14.2"
 lnpbp = "~0.9.0"
 strict_encoding = { version = "~0.9.0", features = ["chrono", "bitcoin"] }
+strict_encoding2 = { package = "strict_encoding", version = "2.3" }
 bitcoin_scripts = "0.10.0"
 descriptor-wallet = { version = "~0.10.0", features = ["miniscript", "keygen", "hwi", "sign", "strict_encoding"] }
+rgb-std = "0.10.2"
+rgb-wallet = "0.10.2"
 bitcoin = "0.29.2"
 miniscript = "9.0.1"
 hwi = "0.6.0"
@@ -31,9 +34,12 @@ default = ["serde"]
 all = ["serde", "electrum"]
 electrum = ["electrum-client"]
 serde = ["serde_crate", "serde_with", "lnpbp/serde", "chrono/serde",
-    "amplify/serde", "descriptor-wallet/serde", "bitcoin/serde"]
+    "amplify/serde", "descriptor-wallet/serde", "bitcoin/serde", "rgb-std/serde", "rgb-wallet/serde"]
 
 [patch.crates-io]
-bitcoin_scripts = { git = "https://github.com/BP-WG/bp-foundation" }
-bitcoin_blockchain = { git = "https://github.com/BP-WG/bp-foundation" }
-descriptor-wallet = { git = "https://github.com/BP-WG/descriptor-wallet" }
+strict_types = { git = "https://github.com/strict-types/strict-types" }
+commit_verify = { git = "https://github.com/LNP-BP/client_side_validation" }
+bp-core = { git = "https://github.com/BP-WG/bp-core" }
+aluvm = { git = "https://github.com/AluVM/rust-aluvm" }
+rgb-core = { git = "https://github.com/RGB-WG/rgb-core" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet" }
