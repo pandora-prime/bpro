@@ -68,6 +68,7 @@ pub struct Wallet {
     utxos: BTreeSet<UtxoTxid>,
     history: BTreeSet<HistoryEntry>,
 
+    #[getter(as_mut)]
     #[cfg_attr(feature = "serde", serde(skip))]
     rgb: RgbProxy,
 }

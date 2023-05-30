@@ -37,9 +37,9 @@ serde = ["serde_crate", "serde_with", "lnpbp/serde", "chrono/serde",
     "amplify/serde", "descriptor-wallet/serde", "bitcoin/serde", "rgb-std/serde", "rgb-wallet/serde"]
 
 [patch.crates-io]
-strict_types = { git = "https://github.com/strict-types/strict-types" }
+strict_types = { git = "https://github.com/strict-types/strict-types", branch = "develop" }
 commit_verify = { git = "https://github.com/LNP-BP/client_side_validation" }
 bp-core = { git = "https://github.com/BP-WG/bp-core" }
 aluvm = { git = "https://github.com/AluVM/rust-aluvm" }
 rgb-core = { git = "https://github.com/RGB-WG/rgb-core" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet" }
+rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet", branch = "rgb20" }
