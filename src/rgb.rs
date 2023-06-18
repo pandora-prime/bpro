@@ -57,6 +57,12 @@ impl RgbProxy {
             false => Self::none(),
         }
     }
+    pub fn is_rgb(&self) -> bool {
+        match self {
+            RgbProxy::None(_) => false,
+            RgbProxy::RgbV0_10(_) => true,
+        }
+    }
 }
 
 impl StrictEncode for RgbProxy {

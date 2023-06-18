@@ -68,7 +68,7 @@ pub struct Wallet {
     utxos: BTreeSet<UtxoTxid>,
     history: BTreeSet<HistoryEntry>,
 
-    #[getter(as_mut)]
+    #[getter(skip)]
     #[cfg_attr(feature = "serde", serde(skip))]
     rgb: RgbProxy,
 }
@@ -94,6 +94,22 @@ impl Wallet {
     pub fn as_settings(&self) -> &WalletSettings { &self.settings }
     pub fn to_settings(&self) -> WalletSettings { self.settings.clone() }
     pub fn into_settings(self) -> WalletSettings { self.settings }
+
+    pub fn is_rgb(&self) -> bool { self.rgb.is_rgb() }
+    pub fn rgb(&self) -> Option<&RgbProxy> {
+        if self.is_rgb() {
+            Some(&self.rgb)
+        } else {
+            None
+        }
+    }
+    pub fn rgb_mut(&mut self) -> Option<&mut RgbProxy> {
+        if self.is_rgb() {
+            Some(&mut self.rgb)
+        } else {
+            None
+        }
+    }
 
     pub fn tx_count(&self) -> usize { self.history.len() }
 
