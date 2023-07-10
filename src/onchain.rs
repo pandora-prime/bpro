@@ -123,7 +123,7 @@ impl OnchainStatus {
 
     pub fn from_i32(index: i32) -> OnchainStatus {
         match index {
-            i if i < 0 => OnchainStatus::Mempool,
+            i if i <= 0 => OnchainStatus::Mempool,
             height => OnchainStatus::Blockchain(height as u32),
         }
     }
@@ -138,7 +138,7 @@ impl OnchainStatus {
     pub fn into_i32(self) -> i32 {
         match self {
             OnchainStatus::Blockchain(height) => height as i32,
-            OnchainStatus::Mempool => -1,
+            OnchainStatus::Mempool => 0,
         }
     }
 
