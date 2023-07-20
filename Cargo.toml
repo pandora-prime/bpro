@@ -35,7 +35,3 @@ all = ["serde", "electrum"]
 electrum = ["electrum-client"]
 serde = ["serde_crate", "serde_with", "lnpbp/serde", "chrono/serde",
     "amplify/serde", "descriptor-wallet/serde", "bitcoin/serde", "rgb-std/serde", "rgb-wallet/serde"]
-
-[patch.crates-io]
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet", branch = "rgb20" }
