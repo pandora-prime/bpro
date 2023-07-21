@@ -31,6 +31,8 @@ use miniscript::descriptor::{DescriptorType, Sh, Wsh};
 use miniscript::policy::compiler::CompilerError;
 use miniscript::policy::concrete::{Policy, PolicyError};
 use miniscript::{Descriptor, Legacy, Segwitv0, Tap};
+use rgbstd::interface::OutpointFilter;
+use rgbstd::Outpoint;
 use strict_encoding::{StrictDecode, StrictEncode};
 use wallet::descriptors::derive::DeriveDescriptor;
 use wallet::descriptors::{DescrVariants, DescriptorClass};
@@ -380,6 +382,15 @@ impl ResolveTx for Wallet {
             .find(|item| item.onchain.txid == txid)
             .map(|meta| meta.tx.clone())
             .ok_or_else(|| TxResolverError::with(txid))
+    }
+}
+
+impl OutpointFilter for Wallet {
+    fn include_outpoint(&self, outpoint: Outpoint) -> bool {
+        self.utxos.iter().any(|utxo| {
+            utxo.onchain.txid.as_ref() == outpoint.txid.as_ref().as_slice()
+                && utxo.vout == outpoint.vout.into_u32()
+        })
     }
 }
 
