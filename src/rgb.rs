@@ -9,6 +9,7 @@
 // a copy of the AGPL-3.0 License along with this software. If not, see
 // <https://www.gnu.org/licenses/agpl-3.0-standalone.html>.
 
+use std::collections::BTreeSet;
 use std::io::{Read, Write};
 use std::ops::{Deref, DerefMut};
 
@@ -18,10 +19,18 @@ use strict_encoding2::{
     DecodeError, StrictDecode as _, StrictEncode as _, StrictReader, StrictWriter,
 };
 
+use crate::OnchainTxid;
+
 #[derive(Clone, Debug)]
 pub enum RgbProxy {
-    None(Stock),
-    RgbV0_10(Stock),
+    None {
+        stock: Stock,
+        witness_txes: BTreeSet<OnchainTxid>,
+    },
+    RgbV0_10 {
+        stock: Stock,
+        witness_txes: BTreeSet<OnchainTxid>,
+    },
 }
 
 impl Deref for RgbProxy {
@@ -29,8 +38,8 @@ impl Deref for RgbProxy {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            RgbProxy::None(stock) => stock,
-            RgbProxy::RgbV0_10(stock) => stock,
+            RgbProxy::None { stock, .. } => stock,
+            RgbProxy::RgbV0_10 { stock, .. } => stock,
         }
     }
 }
@@ -38,8 +47,8 @@ impl Deref for RgbProxy {
 impl DerefMut for RgbProxy {
     fn deref_mut(&mut self) -> &mut Self::Target {
         match self {
-            RgbProxy::None(_) => panic!("writing RGB stock in non-RGB wallet"),
-            RgbProxy::RgbV0_10(stock) => stock,
+            RgbProxy::None { .. } => panic!("writing RGB stock in non-RGB wallet"),
+            RgbProxy::RgbV0_10 { stock, .. } => stock,
         }
     }
 }
@@ -49,8 +58,18 @@ impl Default for RgbProxy {
 }
 
 impl RgbProxy {
-    pub fn none() -> RgbProxy { RgbProxy::None(Stock::default()) }
-    pub fn new() -> RgbProxy { RgbProxy::RgbV0_10(Stock::default()) }
+    pub fn none() -> RgbProxy {
+        RgbProxy::None {
+            stock: none!(),
+            witness_txes: none!(),
+        }
+    }
+    pub fn new() -> RgbProxy {
+        RgbProxy::RgbV0_10 {
+            stock: empty!(),
+            witness_txes: empty!(),
+        }
+    }
     pub fn with(support_rgb: bool) -> RgbProxy {
         match support_rgb {
             true => Self::new(),
@@ -59,8 +78,20 @@ impl RgbProxy {
     }
     pub fn is_rgb(&self) -> bool {
         match self {
-            RgbProxy::None(_) => false,
-            RgbProxy::RgbV0_10(_) => true,
+            RgbProxy::None { .. } => false,
+            RgbProxy::RgbV0_10 { .. } => true,
+        }
+    }
+    pub fn witness_txes(&self) -> &BTreeSet<OnchainTxid> {
+        match self {
+            RgbProxy::None { witness_txes, .. } => witness_txes,
+            RgbProxy::RgbV0_10 { witness_txes, .. } => witness_txes,
+        }
+    }
+    pub fn witness_txes_mut(&mut self) -> &mut BTreeSet<OnchainTxid> {
+        match self {
+            RgbProxy::None { .. } => panic!("writing RGB witntess index in non-RGB wallet"),
+            RgbProxy::RgbV0_10 { witness_txes, .. } => witness_txes,
         }
     }
 }
@@ -68,15 +99,21 @@ impl RgbProxy {
 impl StrictEncode for RgbProxy {
     fn strict_encode<E: Write>(&self, mut e: E) -> Result<usize, strict_encoding::Error> {
         match self {
-            RgbProxy::None(_) => {
+            RgbProxy::None { .. } => {
                 e.write_all(&[0, 0])?;
                 Ok(2)
             }
-            RgbProxy::RgbV0_10(stock) => {
+            RgbProxy::RgbV0_10 {
+                stock,
+                witness_txes,
+            } => {
                 e.write_all(&[1, 0])?;
                 let counter = StrictWriter::with(u32::MAX as usize, e);
                 let counter = stock.strict_encode(counter)?;
-                Ok(counter.count())
+                let mut count = counter.count();
+                let writer = counter.unbox();
+                count += StrictEncode::strict_encode(witness_txes, writer)?;
+                Ok(count)
             }
         }
     }
@@ -95,7 +132,12 @@ impl StrictDecode for RgbProxy {
                     }
                     other => strict_encoding::Error::DataIntegrityError(other.to_string()),
                 })?;
-                Ok(RgbProxy::RgbV0_10(stock))
+                let reader = counter.unbox();
+                let witness_txes = StrictDecode::strict_decode(reader)?;
+                Ok(RgbProxy::RgbV0_10 {
+                    stock,
+                    witness_txes,
+                })
             }
             wrong => Err(strict_encoding::Error::DataIntegrityError(format!(
                 "unsupported future version of wallet file (v{wrong})"
