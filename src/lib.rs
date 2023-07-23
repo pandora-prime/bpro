@@ -36,7 +36,7 @@ pub use onchain::{
     AddressSource, AddressSummary, AddressValue, HistoryEntry, OnchainStatus, OnchainTxid, Prevout,
     TxidMeta, UtxoTxid,
 };
-pub use rgb::RgbProxy;
+pub use rgb::{IssueEntry, OperationEntry, RgbProxy};
 pub use sign::XprivSigner;
 pub use taptree::ToTapTree;
 pub use template::{Requirement, WalletTemplate};
