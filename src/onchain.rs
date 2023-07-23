@@ -46,7 +46,10 @@ impl AddressSummary {
 #[derive(StrictEncode, StrictDecode)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(crate = "serde_crate"))]
 pub struct AddressSource {
-    #[cfg_attr(feature = "serde", serde(with = "::serde_with::As::<::serde_with::DisplayFromStr>"))]
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "::serde_with::As::<::serde_with::DisplayFromStr>")
+    )]
     pub address: AddressCompat,
     pub change: bool,
     pub index: UnhardenedIndex,
@@ -213,7 +216,7 @@ impl OnchainTxid {
 #[derive(StrictEncode, StrictDecode)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(crate = "serde_crate"))]
 pub struct HistoryEntry {
-    /// For spendings, txid of the transaction that spents wallet funds.
+    /// For spending, txid of the transaction that spends wallet funds.
     /// For incoming payments (including change operations), txid containing funds on an address of
     /// the wallet.
     pub onchain: OnchainTxid,
