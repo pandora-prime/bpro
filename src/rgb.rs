@@ -14,6 +14,7 @@ use std::collections::BTreeSet;
 use std::io::{Read, Write};
 use std::ops::{Deref, DerefMut};
 
+use bitcoin::OutPoint;
 use chrono::{DateTime, Utc};
 use rgbstd::persistence::Stock;
 
@@ -23,13 +24,13 @@ use crate::{HistoryEntry, OnchainTxid};
 pub enum RgbProxy {
     None {
         stock: Stock,
-        history: Vec<OperationEntry>,
         witness_txes: BTreeSet<OnchainTxid>,
+        owned_seals: BTreeSet<OutPoint>,
     },
     RgbV0_10 {
         stock: Stock,
-        history: Vec<OperationEntry>,
         witness_txes: BTreeSet<OnchainTxid>,
+        owned_seals: BTreeSet<OutPoint>,
     },
 }
 
@@ -61,14 +62,14 @@ impl RgbProxy {
     pub fn none() -> RgbProxy {
         RgbProxy::None {
             stock: none!(),
-            history: none!(),
+            owned_seals: none!(),
             witness_txes: none!(),
         }
     }
     pub fn new() -> RgbProxy {
         RgbProxy::RgbV0_10 {
             stock: empty!(),
-            history: empty!(),
+            owned_seals: empty!(),
             witness_txes: empty!(),
         }
     }
@@ -84,10 +85,10 @@ impl RgbProxy {
             RgbProxy::RgbV0_10 { .. } => true,
         }
     }
-    pub fn history(&self) -> &[OperationEntry] {
+    pub fn seals(&self) -> &BTreeSet<OutPoint> {
         match self {
-            RgbProxy::None { history, .. } => history,
-            RgbProxy::RgbV0_10 { history, .. } => history,
+            RgbProxy::None { owned_seals, .. } => owned_seals,
+            RgbProxy::RgbV0_10 { owned_seals, .. } => owned_seals,
         }
     }
     pub fn witness_txes(&self) -> &BTreeSet<OnchainTxid> {
@@ -121,7 +122,7 @@ mod _encoding {
                 }
                 RgbProxy::RgbV0_10 {
                     stock,
-                    history,
+                    owned_seals,
                     witness_txes,
                 } => {
                     e.write_all(&[1, 0])?;
@@ -129,7 +130,7 @@ mod _encoding {
                     let counter = stock.strict_encode(counter)?;
                     let mut count = counter.count();
                     let mut writer = counter.unbox();
-                    count += StrictEncode::strict_encode(history, &mut writer)?;
+                    count += StrictEncode::strict_encode(owned_seals, &mut writer)?;
                     count += StrictEncode::strict_encode(witness_txes, &mut writer)?;
                     Ok(count)
                 }
@@ -151,11 +152,11 @@ mod _encoding {
                         other => strict_encoding::Error::DataIntegrityError(other.to_string()),
                     })?;
                     let mut reader = counter.unbox();
-                    let history = StrictDecode::strict_decode(&mut reader)?;
+                    let owned_seals = StrictDecode::strict_decode(&mut reader)?;
                     let witness_txes = StrictDecode::strict_decode(&mut reader)?;
                     Ok(RgbProxy::RgbV0_10 {
                         stock,
-                        history,
+                        owned_seals,
                         witness_txes,
                     })
                 }
