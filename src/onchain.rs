@@ -51,7 +51,7 @@ pub struct AddressSource {
         serde(with = "::serde_with::As::<::serde_with::DisplayFromStr>")
     )]
     pub address: AddressCompat,
-    pub change: bool,
+    pub change: UnhardenedIndex,
     pub index: UnhardenedIndex,
 }
 
@@ -67,25 +67,19 @@ impl AddressSource {
     ) -> AddressSource {
         AddressSource {
             address: AddressCompat::from_script(script, network.into()).expect("invalid script"),
-            change,
+            change: UnhardenedIndex::from(change as u8),
             index,
         }
     }
 
     pub fn icon_name(self) -> Option<&'static str> {
-        match self.change {
-            true => Some("view-refresh-symbolic"),
-            false => None,
+        match self.change.first_index() {
+            1 => Some("view-refresh-symbolic"),
+            _ => None,
         }
     }
 
-    pub fn change_index(self) -> UnhardenedIndex {
-        if self.change {
-            UnhardenedIndex::one()
-        } else {
-            UnhardenedIndex::zero()
-        }
-    }
+    pub fn change_index(self) -> UnhardenedIndex { self.change }
 
     pub fn terminal_string(self) -> String { format!("/{}/{}", self.change_index(), self.index) }
 }
@@ -332,18 +326,13 @@ impl From<UtxoTxid> for Prevout {
 pub struct Prevout {
     pub outpoint: OutPoint,
     pub amount: u64,
-    pub change: bool,
+    pub change: UnhardenedIndex,
     pub index: UnhardenedIndex,
 }
 
 impl Prevout {
     pub fn terminal(&self) -> DerivationSubpath<UnhardenedIndex> {
-        DerivationSubpath::from(
-            &[
-                if self.change { UnhardenedIndex::one() } else { UnhardenedIndex::zero() },
-                self.index,
-            ][..],
-        )
+        DerivationSubpath::from(&[self.change, self.index][..])
     }
 }
 

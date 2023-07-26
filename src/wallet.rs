@@ -227,7 +227,7 @@ impl Wallet {
 
         let max_index = addresses
             .values()
-            .filter(|info| !info.addr_src.change)
+            .filter(|info| info.addr_src.change == UnhardenedIndex::zero())
             .map(|info| info.addr_src.index.first_index() as u16)
             .max()
             .unwrap_or_default()
@@ -242,7 +242,7 @@ impl Wallet {
                 addresses.entry(address).or_insert(AddressSummary {
                     addr_src: AddressSource {
                         address,
-                        change: false,
+                        change: UnhardenedIndex::zero(),
                         index,
                     },
                     balance: 0,
