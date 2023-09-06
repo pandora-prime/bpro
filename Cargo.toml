@@ -16,11 +16,8 @@ exclude = [".github", "contrib"]
 amplify = "3.14.2"
 lnpbp = "~0.9.0"
 strict_encoding = { version = "~0.9.0", features = ["chrono", "bitcoin"] }
-strict_encoding2 = { package = "strict_encoding", version = "2.3" }
 bitcoin_scripts = "0.10.0"
 descriptor-wallet = { version = "~0.10.0", features = ["miniscript", "keygen", "hwi", "sign", "strict_encoding"] }
-rgb-std = "0.10.4"
-rgb-wallet = "0.10.4"
 bitcoin = "0.29.2"
 miniscript = "9.0.1"
 hwi = "0.6.0"
@@ -34,4 +31,4 @@ default = ["serde"]
 all = ["serde", "electrum"]
 electrum = ["electrum-client"]
 serde = ["serde_crate", "serde_with", "lnpbp/serde", "chrono/serde",
-    "amplify/serde", "descriptor-wallet/serde", "bitcoin/serde", "rgb-std/serde", "rgb-wallet/serde"]
+    "amplify/serde", "descriptor-wallet/serde", "bitcoin/serde"]

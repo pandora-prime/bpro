@@ -28,7 +28,6 @@ mod taptree;
 mod template;
 mod types;
 mod wallet;
-mod rgb;
 
 pub use electrum::{ElectrumPreset, ElectrumSec, ElectrumServer};
 pub use file::FileDocument;
@@ -36,7 +35,6 @@ pub use onchain::{
     AddressSource, AddressSummary, AddressValue, HistoryEntry, OnchainStatus, OnchainTxid, Prevout,
     TxidMeta, UtxoTxid,
 };
-pub use rgb::RgbProxy;
 pub use sign::XprivSigner;
 pub use taptree::ToTapTree;
 pub use template::{Requirement, WalletTemplate};

@@ -31,8 +31,6 @@ use miniscript::descriptor::{DescriptorType, Sh, Wsh};
 use miniscript::policy::compiler::CompilerError;
 use miniscript::policy::concrete::{Policy, PolicyError};
 use miniscript::{Descriptor, Legacy, Segwitv0, Tap};
-use rgbstd::interface::OutpointFilter;
-use rgbstd::Outpoint;
 use strict_encoding::{StrictDecode, StrictEncode};
 use wallet::descriptors::derive::DeriveDescriptor;
 use wallet::descriptors::{DescrVariants, DescriptorClass};
@@ -46,8 +44,8 @@ use wallet::onchain::{PublicNetwork, ResolveTx, TxResolverError};
 use wallet::slip132::KeyApplication;
 
 use crate::{
-    AddressSource, AddressSummary, AddressValue, ElectrumServer, HistoryEntry, Prevout, RgbProxy,
-    Signer, SigsReq, TimelockReq, TimelockedSigs, ToTapTree, TxidMeta, UtxoTxid,
+    AddressSource, AddressSummary, AddressValue, ElectrumServer, HistoryEntry, Prevout, Signer,
+    SigsReq, TimelockReq, TimelockedSigs, ToTapTree, TxidMeta, UtxoTxid,
 };
 
 #[derive(Getters, Clone, Debug)]
@@ -69,15 +67,10 @@ pub struct Wallet {
 
     utxos: BTreeSet<UtxoTxid>,
     history: BTreeSet<HistoryEntry>,
-
-    #[getter(skip)]
-    #[cfg_attr(feature = "serde", serde(skip))]
-    rgb: RgbProxy,
 }
 
 impl From<WalletSettings> for Wallet {
     fn from(settings: WalletSettings) -> Self {
-        let is_rgb = settings.is_rgb();
         Wallet {
             settings,
             last_indexes: empty!(),
@@ -87,7 +80,6 @@ impl From<WalletSettings> for Wallet {
             ephemerals: zero!(),
             utxos: bset![],
             history: bset![],
-            rgb: RgbProxy::with(is_rgb),
         }
     }
 }
@@ -96,22 +88,6 @@ impl Wallet {
     pub fn as_settings(&self) -> &WalletSettings { &self.settings }
     pub fn to_settings(&self) -> WalletSettings { self.settings.clone() }
     pub fn into_settings(self) -> WalletSettings { self.settings }
-
-    pub fn is_rgb(&self) -> bool { self.rgb.is_rgb() }
-    pub fn rgb(&self) -> Option<&RgbProxy> {
-        if self.is_rgb() {
-            Some(&self.rgb)
-        } else {
-            None
-        }
-    }
-    pub fn rgb_mut(&mut self) -> Option<&mut RgbProxy> {
-        if self.is_rgb() {
-            Some(&mut self.rgb)
-        } else {
-            None
-        }
-    }
 
     pub fn tx_count(&self) -> usize { self.history.len() }
 
@@ -385,15 +361,6 @@ impl ResolveTx for Wallet {
     }
 }
 
-impl OutpointFilter for Wallet {
-    fn include_outpoint(&self, outpoint: Outpoint) -> bool {
-        self.utxos.iter().any(|utxo| {
-            utxo.onchain.txid.as_ref() == outpoint.txid.as_ref().as_slice()
-                && utxo.vout == outpoint.vout.into_u32()
-        })
-    }
-}
-
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display, Error)]
 #[display(doc_comments)]
 pub enum DescriptorError {
@@ -470,15 +437,6 @@ pub struct WalletDescriptor {
     pub(self) spending_conditions: BTreeSet<(u8, SpendingCondition)>,
 }
 
-impl WalletDescriptor {
-    pub fn is_rgb(&self) -> bool {
-        self.terminal
-            .first()
-            .map(|step| step.contains(9))
-            .unwrap_or_default()
-    }
-}
-
 impl Display for WalletDescriptor {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if self.descriptor_classes.len() == 1 {
@@ -514,9 +472,6 @@ impl Display for WalletDescriptor {
             }
         } else {
             f.write_str("Multi-descriptor")?;
-        }
-        if self.is_rgb() {
-            f.write_str(" with RGB")?;
         }
         if self.testnet {
             f.write_str(" (testnet)")?;
