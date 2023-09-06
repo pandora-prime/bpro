@@ -16,7 +16,7 @@ use std::hash::{Hash, Hasher};
 
 use bitcoin::util::bip32::{ChildNumber, DerivationPath, ExtendedPubKey, Fingerprint};
 use chrono::{DateTime, Utc};
-use hwi::types::{HWIChain, HWIDevice};
+use hwi::types::HWIDevice;
 use hwi::HWIClient;
 use wallet::hd::standards::DerivationBlockchain;
 use wallet::hd::{
@@ -102,11 +102,7 @@ impl HardwareList {
 
             let fingerprint = Fingerprint::from(&device.fingerprint[..]);
 
-            let chain = match network {
-                PublicNetwork::Mainnet => HWIChain::Main,
-                PublicNetwork::Testnet => HWIChain::Test,
-                PublicNetwork::Signet => HWIChain::Signet,
-            };
+            let chain = bitcoin::Network::from(network).into();
             let client = match HWIClient::get_client(&device, false, chain) {
                 Err(err) => {
                     log.push(err.into());

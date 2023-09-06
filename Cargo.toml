@@ -20,7 +20,7 @@ bitcoin_scripts = "0.10.0"
 descriptor-wallet = { version = "~0.10.0", features = ["miniscript", "keygen", "hwi", "sign", "strict_encoding"] }
 bitcoin = "0.29.2"
 miniscript = "9.0.1"
-hwi = "0.6.0"
+bitcoin_hwi = "0.4.0"
 electrum-client = { version = "0.14.1", optional = true }
 serde_crate = { package = "serde", version = "1", features = ["derive"], optional = true }
 serde_with = { version = "2.3.2", features = ["hex"], optional = true }
@@ -32,3 +32,6 @@ all = ["serde", "electrum"]
 electrum = ["electrum-client"]
 serde = ["serde_crate", "serde_with", "lnpbp/serde", "chrono/serde",
     "amplify/serde", "descriptor-wallet/serde", "bitcoin/serde"]
+
+[patch.crates-io]
+descriptor-wallet = { git = "https://github.com/BP-WG/descriptor-wallet", branch = "master" }
