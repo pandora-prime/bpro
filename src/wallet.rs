@@ -43,6 +43,7 @@ use wallet::hd::{
 use wallet::onchain::{PublicNetwork, ResolveTx, TxResolverError};
 use wallet::slip132::KeyApplication;
 
+use crate::onchain::Comment;
 use crate::{
     AddressSource, AddressSummary, AddressValue, ElectrumServer, HistoryEntry, Prevout, Signer,
     SigsReq, TimelockReq, TimelockedSigs, ToTapTree, TxidMeta, UtxoTxid,
@@ -348,6 +349,20 @@ impl Wallet {
 
     pub fn update_electrum(&mut self, electrum: ElectrumServer) -> bool {
         self.settings.update_electrum(electrum)
+    }
+
+    pub fn set_comment(&mut self, txid: Txid, label: String) -> Result<Option<Comment>, ()> {
+        let mut entry = self
+            .history
+            .iter()
+            .find(|entry| entry.tx.txid() == txid)
+            .ok_or(())?
+            .clone();
+        let comment = entry.comment.clone();
+        self.history.remove(&entry);
+        entry.set_comment(label);
+        self.history.insert(entry);
+        Ok(comment)
     }
 }
 
