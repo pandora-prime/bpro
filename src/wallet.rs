@@ -266,8 +266,6 @@ impl Wallet {
         addr_buffer: &BTreeMap<AddressSource, BTreeSet<TxidMeta>>,
         tx_buffer: &[Transaction],
     ) {
-        // TODO: Remove this call and do a "smart" history update operation
-        self.history = bset![];
         self.state.volume = 0;
         self.state.balance = self.utxos.iter().map(|utxo| utxo.value).sum::<u64>();
 
@@ -332,18 +330,36 @@ impl Wallet {
                 .collect();
 
             let meta = txid2meta[&tx.txid()];
-            let entry = HistoryEntry {
-                onchain: meta.onchain,
-                tx: tx.clone(),
-                credit,
-                debit,
-                payers: empty!(),
-                beneficiaries: empty!(),
-                fee: meta.fee,
-                comment: None,
-            };
-            self.state.volume += entry.value_credited();
-            self.history.insert(entry);
+            match self
+                .history
+                .iter()
+                .find(|entry| entry.tx.txid() == tx.txid())
+            {
+                Some(entry) if entry.onchain != meta.onchain => {
+                    let mut entry = entry.clone();
+                    self.history.remove(&entry);
+                    entry.onchain = meta.onchain;
+                    self.state.volume += entry.value_credited();
+                    self.history.insert(entry);
+                }
+                None => {
+                    let entry = HistoryEntry {
+                        onchain: meta.onchain,
+                        tx: tx.clone(),
+                        credit,
+                        debit,
+                        payers: empty!(),
+                        beneficiaries: empty!(),
+                        fee: meta.fee,
+                        comment: None,
+                    };
+                    self.state.volume += entry.value_credited();
+                    self.history.insert(entry);
+                }
+                Some(entry) => {
+                    self.state.volume += entry.value_credited();
+                }
+            }
         }
     }
 
