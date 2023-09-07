@@ -214,7 +214,7 @@ pub struct Comment {
     pub timestamp: DateTime<Utc>,
 }
 
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Clone, Eq, Hash, Debug)]
 #[derive(StrictEncode, StrictDecode)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(crate = "serde_crate"))]
 pub struct HistoryEntry {
@@ -229,6 +229,10 @@ pub struct HistoryEntry {
     pub beneficiaries: BTreeMap<u32, String>,
     pub fee: Option<u64>,
     pub comment: Option<Comment>,
+}
+
+impl PartialEq for HistoryEntry {
+    fn eq(&self, other: &Self) -> bool { self.tx.txid() == other.tx.txid() }
 }
 
 impl Ord for HistoryEntry {
