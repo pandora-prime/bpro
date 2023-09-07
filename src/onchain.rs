@@ -209,6 +209,14 @@ impl OnchainTxid {
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 #[derive(StrictEncode, StrictDecode)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(crate = "serde_crate"))]
+pub struct Comment {
+    pub label: String,
+    pub timestamp: DateTime<Utc>,
+}
+
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(StrictEncode, StrictDecode)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(crate = "serde_crate"))]
 pub struct HistoryEntry {
     /// For spending, txid of the transaction that spends wallet funds.
     /// For incoming payments (including change operations), txid containing funds on an address of
@@ -220,7 +228,7 @@ pub struct HistoryEntry {
     pub payers: BTreeMap<u32, (Option<String>, Option<AddressValue>)>,
     pub beneficiaries: BTreeMap<u32, String>,
     pub fee: Option<u64>,
-    pub comment: Option<String>,
+    pub comment: Option<Comment>,
 }
 
 impl Ord for HistoryEntry {
@@ -284,6 +292,13 @@ impl HistoryEntry {
                 }
             }))
             .collect()
+    }
+
+    pub fn set_comment(&mut self, label: String) {
+        self.comment = Some(Comment {
+            label,
+            timestamp: Utc::now(),
+        })
     }
 }
 
