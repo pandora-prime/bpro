@@ -18,15 +18,12 @@ use wallet::onchain::PublicNetwork;
 
 use crate::{DerivationType, SigsReq, SpendingCondition};
 
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Default)]
 pub enum Requirement {
+    #[default]
     Allow,
     Require,
     Deny,
-}
-
-impl Default for Requirement {
-    fn default() -> Self { Requirement::Allow }
 }
 
 /// Wallet template is a way to define constrained version of a wallet descriptor, but unlike

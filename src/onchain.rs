@@ -11,6 +11,7 @@
 
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
+use std::hash::{Hash, Hasher};
 
 use ::wallet::hd::{DerivationSubpath, SegmentIndexes, UnhardenedIndex};
 use bitcoin::{OutPoint, Transaction, Txid};
@@ -214,7 +215,7 @@ pub struct Comment {
     pub timestamp: DateTime<Utc>,
 }
 
-#[derive(Clone, Eq, Hash, Debug)]
+#[derive(Clone, Eq, Debug)]
 #[derive(StrictEncode, StrictDecode)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(crate = "serde_crate"))]
 pub struct HistoryEntry {
@@ -229,6 +230,10 @@ pub struct HistoryEntry {
     pub beneficiaries: BTreeMap<u32, String>,
     pub fee: Option<u64>,
     pub comment: Option<Comment>,
+}
+
+impl Hash for HistoryEntry {
+    fn hash<H: Hasher>(&self, state: &mut H) { state.write(self.tx.txid().as_ref()) }
 }
 
 impl PartialEq for HistoryEntry {

@@ -118,7 +118,7 @@ impl Wallet {
             .as_settings()
             .descriptors_all()
             .expect("invalid wallet descriptor");
-        let d = DeriveDescriptor::<PublicKey>::derive_descriptor(&descriptor, SECP256K1, &[
+        let d = DeriveDescriptor::<PublicKey>::derive_descriptor(&descriptor, SECP256K1, [
             UnhardenedIndex::zero(),
             index,
         ])
@@ -367,6 +367,7 @@ impl Wallet {
         self.settings.update_electrum(electrum)
     }
 
+    #[allow(clippy::result_unit_err)]
     pub fn set_comment(&mut self, txid: Txid, label: String) -> Result<Option<Comment>, ()> {
         let mut entry = self
             .history
@@ -872,7 +873,7 @@ impl WalletSettings {
             .map(|index| -> Result<_, _> {
                 pat[len - 1] = index;
                 let d =
-                    DeriveDescriptor::<PublicKey>::derive_descriptor(&descriptor, &SECP256K1, &pat)
+                    DeriveDescriptor::<PublicKey>::derive_descriptor(&descriptor, SECP256K1, &pat)
                         .map_err(|_| {
                             miniscript::Error::BadDescriptor(s!("unable to derive script pubkey"))
                         })?;
@@ -1043,7 +1044,7 @@ impl SpendingCondition {
             SpendingCondition::Sigs(TimelockedSigs {
                 timelock: TimelockReq::AfterBlock(block),
                 ..
-            }) => Some(Policy::Older(Sequence::from_height(*block).into())),
+            }) => Some(Policy::Older(Sequence::from_height(*block))),
         };
 
         timelock
