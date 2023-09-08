@@ -11,6 +11,7 @@
 
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
+use std::hash::{Hash, Hasher};
 
 use ::wallet::hd::{DerivationSubpath, SegmentIndexes, UnhardenedIndex};
 use bitcoin::{OutPoint, Transaction, Txid};
@@ -46,9 +47,12 @@ impl AddressSummary {
 #[derive(StrictEncode, StrictDecode)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(crate = "serde_crate"))]
 pub struct AddressSource {
-    #[cfg_attr(feature = "serde", serde(with = "::serde_with::As::<::serde_with::DisplayFromStr>"))]
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "::serde_with::As::<::serde_with::DisplayFromStr>")
+    )]
     pub address: AddressCompat,
-    pub change: bool,
+    pub change: UnhardenedIndex,
     pub index: UnhardenedIndex,
 }
 
@@ -64,25 +68,19 @@ impl AddressSource {
     ) -> AddressSource {
         AddressSource {
             address: AddressCompat::from_script(script, network.into()).expect("invalid script"),
-            change,
+            change: UnhardenedIndex::from(change as u8),
             index,
         }
     }
 
     pub fn icon_name(self) -> Option<&'static str> {
-        match self.change {
-            true => Some("view-refresh-symbolic"),
-            false => None,
+        match self.change.first_index() {
+            1 => Some("view-refresh-symbolic"),
+            _ => None,
         }
     }
 
-    pub fn change_index(self) -> UnhardenedIndex {
-        if self.change {
-            UnhardenedIndex::one()
-        } else {
-            UnhardenedIndex::zero()
-        }
-    }
+    pub fn change_index(self) -> UnhardenedIndex { self.change }
 
     pub fn terminal_string(self) -> String { format!("/{}/{}", self.change_index(), self.index) }
 }
@@ -212,8 +210,16 @@ impl OnchainTxid {
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 #[derive(StrictEncode, StrictDecode)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(crate = "serde_crate"))]
+pub struct Comment {
+    pub label: String,
+    pub timestamp: DateTime<Utc>,
+}
+
+#[derive(Clone, Eq, Debug)]
+#[derive(StrictEncode, StrictDecode)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(crate = "serde_crate"))]
 pub struct HistoryEntry {
-    /// For spendings, txid of the transaction that spents wallet funds.
+    /// For spending, txid of the transaction that spends wallet funds.
     /// For incoming payments (including change operations), txid containing funds on an address of
     /// the wallet.
     pub onchain: OnchainTxid,
@@ -223,7 +229,15 @@ pub struct HistoryEntry {
     pub payers: BTreeMap<u32, (Option<String>, Option<AddressValue>)>,
     pub beneficiaries: BTreeMap<u32, String>,
     pub fee: Option<u64>,
-    pub comment: Option<String>,
+    pub comment: Option<Comment>,
+}
+
+impl Hash for HistoryEntry {
+    fn hash<H: Hasher>(&self, state: &mut H) { state.write(self.tx.txid().as_ref()) }
+}
+
+impl PartialEq for HistoryEntry {
+    fn eq(&self, other: &Self) -> bool { self.tx.txid() == other.tx.txid() }
 }
 
 impl Ord for HistoryEntry {
@@ -288,6 +302,13 @@ impl HistoryEntry {
             }))
             .collect()
     }
+
+    pub fn set_comment(&mut self, label: String) {
+        self.comment = Some(Comment {
+            label,
+            timestamp: Utc::now(),
+        })
+    }
 }
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
@@ -329,18 +350,13 @@ impl From<UtxoTxid> for Prevout {
 pub struct Prevout {
     pub outpoint: OutPoint,
     pub amount: u64,
-    pub change: bool,
+    pub change: UnhardenedIndex,
     pub index: UnhardenedIndex,
 }
 
 impl Prevout {
     pub fn terminal(&self) -> DerivationSubpath<UnhardenedIndex> {
-        DerivationSubpath::from(
-            &[
-                if self.change { UnhardenedIndex::one() } else { UnhardenedIndex::zero() },
-                self.index,
-            ][..],
-        )
+        DerivationSubpath::from(&[self.change, self.index][..])
     }
 }
 

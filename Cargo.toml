@@ -1,6 +1,6 @@
 [package]
 name = "bpro"
-version = "0.4.0"
+version = "0.5.0"
 license = "AGPL-3.0"
 authors = ["Dr Maxim Orlovsky <orlovsky@pandoraprime.ch>"]
 description = "Rust bitcoin wallet library for professional use"
@@ -16,14 +16,11 @@ exclude = [".github", "contrib"]
 amplify = "3.14.2"
 lnpbp = "~0.9.0"
 strict_encoding = { version = "~0.9.0", features = ["chrono", "bitcoin"] }
-strict_encoding2 = { package = "strict_encoding", version = "2.3" }
 bitcoin_scripts = "0.10.0"
-descriptor-wallet = { version = "~0.10.0", features = ["miniscript", "keygen", "hwi", "sign", "strict_encoding"] }
-rgb-std = "0.10.2"
-rgb-wallet = "0.10.2"
+descriptor-wallet = { version = "~0.10.1", features = ["miniscript", "keygen", "hwi", "sign", "strict_encoding"] }
 bitcoin = "0.29.2"
 miniscript = "9.0.1"
-hwi = "0.6.0"
+bitcoin_hwi = "0.4.0"
 electrum-client = { version = "0.14.1", optional = true }
 serde_crate = { package = "serde", version = "1", features = ["derive"], optional = true }
 serde_with = { version = "2.3.2", features = ["hex"], optional = true }
@@ -34,8 +31,4 @@ default = ["serde"]
 all = ["serde", "electrum"]
 electrum = ["electrum-client"]
 serde = ["serde_crate", "serde_with", "lnpbp/serde", "chrono/serde",
-    "amplify/serde", "descriptor-wallet/serde", "bitcoin/serde", "rgb-std/serde", "rgb-wallet/serde"]
-
-[patch.crates-io]
-rgb-core = { git = "https://github.com/RGB-WG/rgb-core" }
-rgb-std = { git = "https://github.com/RGB-WG/rgb-wallet", branch = "rgb20" }
+    "amplify/serde", "descriptor-wallet/serde", "bitcoin/serde"]

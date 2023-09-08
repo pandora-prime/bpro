@@ -43,9 +43,10 @@ use wallet::hd::{
 use wallet::onchain::{PublicNetwork, ResolveTx, TxResolverError};
 use wallet::slip132::KeyApplication;
 
+use crate::onchain::Comment;
 use crate::{
-    AddressSource, AddressSummary, AddressValue, ElectrumServer, HistoryEntry, Prevout, RgbProxy,
-    Signer, SigsReq, TimelockReq, TimelockedSigs, ToTapTree, TxidMeta, UtxoTxid,
+    AddressSource, AddressSummary, AddressValue, ElectrumServer, HistoryEntry, Prevout, Signer,
+    SigsReq, TimelockReq, TimelockedSigs, ToTapTree, TxidMeta, UtxoTxid,
 };
 
 #[derive(Getters, Clone, Debug)]
@@ -67,15 +68,10 @@ pub struct Wallet {
 
     utxos: BTreeSet<UtxoTxid>,
     history: BTreeSet<HistoryEntry>,
-
-    #[getter(skip)]
-    #[cfg_attr(feature = "serde", serde(skip))]
-    rgb: RgbProxy,
 }
 
 impl From<WalletSettings> for Wallet {
     fn from(settings: WalletSettings) -> Self {
-        let is_rgb = settings.is_rgb();
         Wallet {
             settings,
             last_indexes: empty!(),
@@ -85,7 +81,6 @@ impl From<WalletSettings> for Wallet {
             ephemerals: zero!(),
             utxos: bset![],
             history: bset![],
-            rgb: RgbProxy::with(is_rgb),
         }
     }
 }
@@ -94,22 +89,6 @@ impl Wallet {
     pub fn as_settings(&self) -> &WalletSettings { &self.settings }
     pub fn to_settings(&self) -> WalletSettings { self.settings.clone() }
     pub fn into_settings(self) -> WalletSettings { self.settings }
-
-    pub fn is_rgb(&self) -> bool { self.rgb.is_rgb() }
-    pub fn rgb(&self) -> Option<&RgbProxy> {
-        if self.is_rgb() {
-            Some(&self.rgb)
-        } else {
-            None
-        }
-    }
-    pub fn rgb_mut(&mut self) -> Option<&mut RgbProxy> {
-        if self.is_rgb() {
-            Some(&mut self.rgb)
-        } else {
-            None
-        }
-    }
 
     pub fn tx_count(&self) -> usize { self.history.len() }
 
@@ -139,7 +118,7 @@ impl Wallet {
             .as_settings()
             .descriptors_all()
             .expect("invalid wallet descriptor");
-        let d = DeriveDescriptor::<PublicKey>::derive_descriptor(&descriptor, SECP256K1, &[
+        let d = DeriveDescriptor::<PublicKey>::derive_descriptor(&descriptor, SECP256K1, [
             UnhardenedIndex::zero(),
             index,
         ])
@@ -225,7 +204,7 @@ impl Wallet {
 
         let max_index = addresses
             .values()
-            .filter(|info| !info.addr_src.change)
+            .filter(|info| info.addr_src.change == UnhardenedIndex::zero())
             .map(|info| info.addr_src.index.first_index() as u16)
             .max()
             .unwrap_or_default()
@@ -240,7 +219,7 @@ impl Wallet {
                 addresses.entry(address).or_insert(AddressSummary {
                     addr_src: AddressSource {
                         address,
-                        change: false,
+                        change: UnhardenedIndex::zero(),
                         index,
                     },
                     balance: 0,
@@ -287,8 +266,6 @@ impl Wallet {
         addr_buffer: &BTreeMap<AddressSource, BTreeSet<TxidMeta>>,
         tx_buffer: &[Transaction],
     ) {
-        // TODO: Remove this call and do a "smart" history update operation
-        self.history = bset![];
         self.state.volume = 0;
         self.state.balance = self.utxos.iter().map(|utxo| utxo.value).sum::<u64>();
 
@@ -353,23 +330,56 @@ impl Wallet {
                 .collect();
 
             let meta = txid2meta[&tx.txid()];
-            let entry = HistoryEntry {
-                onchain: meta.onchain,
-                tx: tx.clone(),
-                credit,
-                debit,
-                payers: empty!(),
-                beneficiaries: empty!(),
-                fee: meta.fee,
-                comment: None,
-            };
-            self.state.volume += entry.value_credited();
-            self.history.insert(entry);
+            match self
+                .history
+                .iter()
+                .find(|entry| entry.tx.txid() == tx.txid())
+            {
+                Some(entry) if entry.onchain != meta.onchain => {
+                    let mut entry = entry.clone();
+                    self.history.remove(&entry);
+                    entry.onchain = meta.onchain;
+                    self.state.volume += entry.value_credited();
+                    self.history.insert(entry);
+                }
+                None => {
+                    let entry = HistoryEntry {
+                        onchain: meta.onchain,
+                        tx: tx.clone(),
+                        credit,
+                        debit,
+                        payers: empty!(),
+                        beneficiaries: empty!(),
+                        fee: meta.fee,
+                        comment: None,
+                    };
+                    self.state.volume += entry.value_credited();
+                    self.history.insert(entry);
+                }
+                Some(entry) => {
+                    self.state.volume += entry.value_credited();
+                }
+            }
         }
     }
 
     pub fn update_electrum(&mut self, electrum: ElectrumServer) -> bool {
         self.settings.update_electrum(electrum)
+    }
+
+    #[allow(clippy::result_unit_err)]
+    pub fn set_comment(&mut self, txid: Txid, label: String) -> Result<Option<Comment>, ()> {
+        let mut entry = self
+            .history
+            .iter()
+            .find(|entry| entry.tx.txid() == txid)
+            .ok_or(())?
+            .clone();
+        let comment = entry.comment.clone();
+        self.history.remove(&entry);
+        entry.set_comment(label);
+        self.history.insert(entry);
+        Ok(comment)
     }
 }
 
@@ -459,15 +469,6 @@ pub struct WalletDescriptor {
     pub(self) spending_conditions: BTreeSet<(u8, SpendingCondition)>,
 }
 
-impl WalletDescriptor {
-    pub fn is_rgb(&self) -> bool {
-        self.terminal
-            .first()
-            .map(|step| step.contains(9))
-            .unwrap_or_default()
-    }
-}
-
 impl Display for WalletDescriptor {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if self.descriptor_classes.len() == 1 {
@@ -503,9 +504,6 @@ impl Display for WalletDescriptor {
             }
         } else {
             f.write_str("Multi-descriptor")?;
-        }
-        if self.is_rgb() {
-            f.write_str(" with RGB")?;
         }
         if self.testnet {
             f.write_str(" (testnet)")?;
@@ -875,7 +873,7 @@ impl WalletSettings {
             .map(|index| -> Result<_, _> {
                 pat[len - 1] = index;
                 let d =
-                    DeriveDescriptor::<PublicKey>::derive_descriptor(&descriptor, &SECP256K1, &pat)
+                    DeriveDescriptor::<PublicKey>::derive_descriptor(&descriptor, SECP256K1, &pat)
                         .map_err(|_| {
                             miniscript::Error::BadDescriptor(s!("unable to derive script pubkey"))
                         })?;
@@ -1046,7 +1044,7 @@ impl SpendingCondition {
             SpendingCondition::Sigs(TimelockedSigs {
                 timelock: TimelockReq::AfterBlock(block),
                 ..
-            }) => Some(Policy::Older(Sequence::from_height(*block).into())),
+            }) => Some(Policy::Older(Sequence::from_height(*block))),
         };
 
         timelock

@@ -16,7 +16,7 @@ use std::hash::{Hash, Hasher};
 
 use bitcoin::util::bip32::{ChildNumber, DerivationPath, ExtendedPubKey, Fingerprint};
 use chrono::{DateTime, Utc};
-use hwi::types::{HWIChain, HWIDevice};
+use hwi::types::HWIDevice;
 use hwi::HWIClient;
 use wallet::hd::standards::DerivationBlockchain;
 use wallet::hd::{
@@ -102,11 +102,7 @@ impl HardwareList {
 
             let fingerprint = Fingerprint::from(&device.fingerprint[..]);
 
-            let chain = match network {
-                PublicNetwork::Mainnet => HWIChain::Main,
-                PublicNetwork::Testnet => HWIChain::Test,
-                PublicNetwork::Signet => HWIChain::Signet,
-            };
+            let chain = bitcoin::Network::from(network).into();
             let client = match HWIClient::get_client(&device, false, chain) {
                 Err(err) => {
                     log.push(err.into());
@@ -368,10 +364,11 @@ impl Signer {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display, Default)]
 #[derive(StrictEncode, StrictDecode)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(crate = "serde_crate"))]
 pub enum SigsReq {
+    #[default]
     #[display("all signatures")]
     All,
     #[display("at least {0} signatures")]
@@ -384,10 +381,6 @@ pub enum SigsReq {
     Any,
     #[display("at least {0} signatures from account {1}")]
     AccountBased(u16, HardenedIndex),
-}
-
-impl Default for SigsReq {
-    fn default() -> Self { SigsReq::All }
 }
 
 impl SigsReq {
@@ -434,10 +427,11 @@ impl TimelockDuration {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Display, Default)]
 #[derive(StrictEncode, StrictDecode)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(crate = "serde_crate"))]
 pub enum TimelockReq {
+    #[default]
     #[display("anytime")]
     Anytime,
     #[display("after {0}")]
@@ -448,10 +442,6 @@ pub enum TimelockReq {
     AfterDate(DateTime<Utc>),
     #[display("after block {0}")]
     AfterHeight(u32),
-}
-
-impl Default for TimelockReq {
-    fn default() -> Self { TimelockReq::Anytime }
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default, Display)]

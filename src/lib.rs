@@ -16,6 +16,7 @@ extern crate strict_encoding;
 #[cfg(feature = "serde")]
 #[macro_use]
 extern crate serde_crate as serde;
+extern crate bitcoin_hwi as hwi;
 #[cfg(feature = "serde")]
 extern crate serde_with;
 
@@ -28,7 +29,6 @@ mod taptree;
 mod template;
 mod types;
 mod wallet;
-mod rgb;
 
 pub use electrum::{ElectrumPreset, ElectrumSec, ElectrumServer};
 pub use file::FileDocument;
@@ -36,7 +36,6 @@ pub use onchain::{
     AddressSource, AddressSummary, AddressValue, HistoryEntry, OnchainStatus, OnchainTxid, Prevout,
     TxidMeta, UtxoTxid,
 };
-pub use rgb::RgbProxy;
 pub use sign::XprivSigner;
 pub use taptree::ToTapTree;
 pub use template::{Requirement, WalletTemplate};
